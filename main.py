@@ -1,5 +1,6 @@
 import pygame
 from enum import Enum
+from math import ceil
 
 # Initialize Pygame
 pygame.init()
@@ -70,7 +71,7 @@ class Grid(GameObject):
         super().__init__(0, 0)  # Initialize at grid origin
         self.width = width
         self.height = height
-        self.grid_matrix = self.create_grid_with_obstacles()
+        self.matrix = self.create_grid_with_obstacles()
 
     def create_grid_with_obstacles(self):
         grid = [[0 for _ in range(self.width)] for _ in range(self.height)]
@@ -89,16 +90,16 @@ class Grid(GameObject):
                 grid[y][x] = 1  # 1 represents unbreakable obstacle
         return grid
 
-    def is_position_walkable(self, grid_x, grid_y):
+    def is_position_walkable(self, x, y):
         # Check if a grid position is within bounds and walkable
-        if 0 <= grid_x < self.width and 0 <= grid_y < self.height:
-            return self.grid_matrix[grid_y][grid_x] == 0
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.matrix[y][x] == 0
         return False
 
     def draw(self, screen):
         for row in range(self.height):
             for col in range(self.width):
-                color = BACKGROUND_COLOR if self.grid_matrix[row][col] == 0 else OBSTACLE_COLOR
+                color = BACKGROUND_COLOR if self.matrix[row][col] == 0 else OBSTACLE_COLOR
                 pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))  # Adjust for HUD
                 pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)  # Grid lines
 
@@ -117,7 +118,7 @@ class Player(GameObject):
 
         if controller[GameController.DOWN]:
             new_y = self.y + self.speed
-            if grid.is_position_walkable(int(self.x), int(new_y + 0.999)):
+            if grid.is_position_walkable(int(self.x), ceil(new_y)):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
@@ -129,7 +130,7 @@ class Player(GameObject):
 
         if controller[GameController.RIGHT]:
             new_x = self.x + self.speed
-            if grid.is_position_walkable(int(new_x + 0.999), int(self.y)):
+            if grid.is_position_walkable(ceil(new_x), int(self.y)):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
