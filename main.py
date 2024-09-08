@@ -104,19 +104,26 @@ class Player(GameObject):
         if keys[GameSettings.UP]:
             new_y = self.y - self.speed
             if grid.is_position_walkable(int(self.x), int(new_y)):
-                self.y = new_y
+                if int(self.x) == self.x:
+                    self.y = round(new_y, PRECISION)
+
         if keys[GameSettings.DOWN]:
             new_y = self.y + self.speed
-            if grid.is_position_walkable(int(self.x), int(new_y)):
-                self.y = new_y
+            if grid.is_position_walkable(int(self.x), int(new_y + 0.999)):  # Check next full tile down
+                if int(self.x) == self.x:
+                    self.y = round(new_y, PRECISION)
+
         if keys[GameSettings.LEFT]:
             new_x = self.x - self.speed
             if grid.is_position_walkable(int(new_x), int(self.y)):
-                self.x = new_x
+                if int(self.y) == self.y:
+                    self.x = round(new_x, PRECISION)
+
         if keys[GameSettings.RIGHT]:
             new_x = self.x + self.speed
-            if grid.is_position_walkable(int(new_x), int(self.y)):
-                self.x = new_x
+            if grid.is_position_walkable(int(new_x + 0.999), int(self.y)):  # Check next full tile to the right
+                if int(self.y) == self.y:
+                    self.x = round(new_x, PRECISION)
 
         # Update pixel position after movement
         self.update_pixel_position()
