@@ -25,12 +25,25 @@ class MovementType(Enum):
     LINEAR = 1
     DIAGONAL = 2
 
-# Class for handling game settings
-class GameSettings:
-    UP = pygame.K_UP or pygame.K_w
-    DOWN = pygame.K_DOWN or pygame.K_s
-    LEFT = pygame.K_LEFT or pygame.K_a
-    RIGHT = pygame.K_RIGHT or pygame.K_d
+class GameController:
+    UP = 0
+    DOWN = 1
+    LEFT = 2
+    RIGHT = 3
+
+    key_map = {
+        UP: [pygame.K_UP, pygame.K_w],
+        DOWN: [pygame.K_DOWN, pygame.K_s],
+        LEFT: [pygame.K_LEFT, pygame.K_a],
+        RIGHT: [pygame.K_RIGHT, pygame.K_d]
+    }
+
+    def __init__(self, keys):
+        self.keys = keys
+
+    def __getitem__(self, direction):
+        # Return True if any key associated with the direction is pressed
+        return any(self.keys[key] for key in GameController.key_map[direction])
 
 # Base class for all objects that need to know about tile size
 class GameObject:
@@ -89,41 +102,40 @@ class Grid(GameObject):
                 pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))  # Adjust for HUD
                 pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)  # Grid lines
 
-# Player class that inherits from GameObject
 class Player(GameObject):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.speed = 0.05  # Movement speed in tile units per update
 
-    def allowed_movement(self, direction, grid):
-        # For now, assume all movement is LINEAR
-        return MovementType.LINEAR
-
-    def move(self, keys, grid):
-        # Handle movement using GameSettings keys
-        if keys[GameSettings.UP]:
+    def move(self, controller, grid):
+        # Handle movement using GameController keys
+        if controller[GameController.UP]:
             new_y = self.y - self.speed
             if grid.is_position_walkable(int(self.x), int(new_y)):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
-        if keys[GameSettings.DOWN]:
+        if controller[GameController.DOWN]:
             new_y = self.y + self.speed
-            if grid.is_position_walkable(int(self.x), int(new_y + 0.999)):  # Check next full tile down
+            if grid.is_position_walkable(int(self.x), int(new_y + 0.999)):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
-        if keys[GameSettings.LEFT]:
+        if controller[GameController.LEFT]:
             new_x = self.x - self.speed
             if grid.is_position_walkable(int(new_x), int(self.y)):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
-        if keys[GameSettings.RIGHT]:
+        if controller[GameController.RIGHT]:
             new_x = self.x + self.speed
-            if grid.is_position_walkable(int(new_x + 0.999), int(self.y)):  # Check next full tile to the right
+            if grid.is_position_walkable(int(new_x + 0.999), int(self.y)):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
+
+        # Snap player to the grid after movement
+        self.x = round(self.x, PRECISION)
+        self.y = round(self.y, PRECISION)
 
         # Update pixel position after movement
         self.update_pixel_position()
@@ -161,9 +173,10 @@ while running:
 
     # Get key presses
     keys = pygame.key.get_pressed()
+    controller = GameController(keys)
 
     # Move player with key inputs
-    player.move(keys, grid)
+    player.move(controller, grid)
 
     # Clear the screen and redraw the grid and HUD
     screen.fill(BACKGROUND_COLOR)
