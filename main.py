@@ -109,8 +109,7 @@ class GameMap(GameObject):
 
 class Bomb(GameObject):
     def __init__(self, player, bomb_type, x, y):
-        # Initialize the Bomb's position from GameObject (round to nearest grid position)
-        super().__init__(int(round(x)), int(round(y)))
+        super().__init__(round(x), round(y))  # Initialize the Bomb's at the nearest grid
         self.player = player  # The player who placed the bomb
         self.bomb_type = bomb_type  # Type of bomb: green or yellow
         self.placed_at = time.time()  # Timestamp when the bomb was placed
@@ -127,15 +126,15 @@ class Bomb(GameObject):
         # Remove the bomb from the map
         map.matrix[int(self.y)][int(self.x)] = 0  # Bomb removed from the grid
         
-        # Remove bomb from the global bombs list
+        # Remove bomb from the global bombs list and decrement the player's placed bomb count
         bombs.remove(self)
+        self.player.placed_bombs -= 1  # Decrement the count of placed bombs
         
         # Trigger the explosion, affecting the grid
         explosion_color = EXPLOSION_GREEN_COLOR if self.bomb_type == 'green' else EXPLOSION_YELLOW_COLOR
         explosion = Explosion(self.x, self.y, self.explosion_range, explosion_color)
         explosions.append(explosion)  # Add the explosion to the global list
 
-        # Check if the explosion hits any players or blocks
         self.check_explosion_destruction()
 
     def check_explosion_destruction(self):
@@ -189,19 +188,28 @@ class Explosion(GameObject):
             pixel_x = sector[0] * TILE_SIZE
             pixel_y = sector[1] * TILE_SIZE + HUD_HEIGHT
             pygame.draw.rect(screen, self.color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+
+    def is_player_in_explosion(self, player):
+        # Use TOLERANCE to check if the player is within the explosion area
+        for sector in self.sectors:
+            if (abs(player.x - sector[0]) <= TOLERANCE) and (abs(player.y - sector[1]) <= TOLERANCE):
+                return True
+        return False
             
 class Player(GameObject):
     def __init__(self, x, y, bomb_type):
         super().__init__(x, y)
         self.speed = 0.05  # Movement speed in tile units per update
-        self.bomb_limit = 1  # Number of bombs the player can place at a time
+        self.bomb_limit = 3  # Number of bombs the player can place at a time
+        self.placed_bombs = 0  # Track how many bombs are placed
         self.bomb_type = bomb_type  # Type of bombs the player can place
 
     def place_bomb(self):
-        if self.bomb_limit > 0:
-            bomb = Bomb(self, self.bomb_type, self.x, self.y)
+        # Place bomb at the nearest grid position (round the player's current position)
+        if self.placed_bombs < self.bomb_limit:
+            bomb = Bomb(self, self.bomb_type, round(self.x), round(self.y))
             bombs.append(bomb)  # Add the bomb to the global bombs list
-            self.bomb_limit -= 1
+            self.placed_bombs += 1  # Increment the count of placed bombs
 
     def move(self, controller):
         # Initialize new positions as current positions
@@ -234,6 +242,14 @@ class Player(GameObject):
 
         # Update player position after calculating new positions
         super().update_pixel_position()
+
+    def check_collision_with_explosions(self):
+        # Check if the player has collided with any active explosions
+        for explosion in explosions:
+            if explosion.is_player_in_explosion(self):
+                print("Player destroyed by explosion!")
+                pygame.quit()
+                sys.exit()
 
 # Function to draw the HUD
 def draw_hud(screen, player):
@@ -300,6 +316,9 @@ while running:
 
     # Move player with key inputs
     player.move(controller)
+
+    # Check if player collides with any explosions
+    player.check_collision_with_explosions()
 
     # Clear the screen and redraw the grid and HUD
     screen.fill(BACKGROUND_COLOR)
