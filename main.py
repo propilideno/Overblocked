@@ -20,12 +20,13 @@ BREAKABLE_COLOR = (139, 69, 19)   # Breakable objects (brown)
 BOMB_COLOR = (0, 0, 0)  # Bombs are black
 OBSTACLE_COLOR = (100, 100, 100)  # Dark grey for unbreakable obstacles
 PLAYER_COLOR = (255, 0, 0)  # Red player
+PLAYER_2_COLOR = (0, 0, 255)  # Blue player
 HUD_COLOR = (0, 0, 0)  # Black for the HUD background
 PRECISION = 3
 TOLERANCE = 0.1  # 10% tolerance for movement alignment
 
 EXPLOSION_GREEN_COLOR = (0, 255, 0)  # Green explosion
-EXPLOSION_YELLOW_COLOR = (255, 255, 0)  # Yellow explosi
+EXPLOSION_YELLOW_COLOR = (255, 255, 0)  # Yellow explosion
 
 # Enum for movement types
 class MovementType(Enum):
@@ -80,7 +81,6 @@ class GameObject:
     def draw(self, screen, color):
         pygame.draw.rect(screen, color, (self.pixel_x, self.pixel_y, TILE_SIZE, TILE_SIZE))
 
-# Grid class that manages the grid, obstacles, and their positions
 class GameMap(GameObject):
     def __init__(self, matrix):
         super().__init__(0, 0)  # Initialize at grid origin
@@ -89,10 +89,22 @@ class GameMap(GameObject):
         self.matrix = matrix
 
     def is_position_walkable(self, x, y):
-        # Check if a grid position is within bounds and walkable
-        if 0 <= x < self.width and 0 <= y < self.height:
-            return self.matrix[y][x] == 0
+        return not self.is_obstacle(x,y)
+
+    def is_unbreakable_obstacle(self, grid_x, grid_y):
+        if 0 <= grid_y < self.height and 0 <= grid_x < self.width:
+            return self.matrix[grid_y][grid_x] == 1
         return False
+
+    def is_breakable_obstacle(self, grid_x, grid_y):
+        if 0 <= grid_y < self.height and 0 <= grid_x < self.width:
+            return self.matrix[grid_y][grid_x] == 2
+        return False
+
+    def is_obstacle(self, grid_x, grid_y):
+        if 0 <= grid_y < map.height and 0 <= grid_x < map.width:
+            return map.matrix[grid_y][grid_x] in [1, 2]  # Unbreakable (1) or breakable (2)
+        return True  # Out of bounds is considered an obstacle
 
     def draw(self, screen):
         for row in range(self.height):
@@ -108,13 +120,14 @@ class GameMap(GameObject):
                 pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)  # Grid lines
 
 class Bomb(GameObject):
-    def __init__(self, player, bomb_type, x, y):
+    def __init__(self, player_id, bomb_type, x, y):
         super().__init__(round(x), round(y))  # Initialize the Bomb's at the nearest grid
-        self.player = player  # The player who placed the bomb
+        self.player_id = player_id  # Store the player's ID
         self.bomb_type = bomb_type  # Type of bomb: green or yellow
         self.placed_at = time.time()  # Timestamp when the bomb was placed
         self.explosion_range = 3  # How far the explosion spreads
         self.is_exploded = False  # Track if the bomb has exploded
+        self.explosion = None  # To store the explosion object
 
     def update(self):
         # Check if the bomb should explode
@@ -128,32 +141,34 @@ class Bomb(GameObject):
         
         # Remove bomb from the global bombs list and decrement the player's placed bomb count
         bombs.remove(self)
-        self.player.placed_bombs -= 1  # Decrement the count of placed bombs
+        placed_bombs[self.player_id] -= 1  # Decrement the count of placed bombs
         
         # Trigger the explosion, affecting the grid
         explosion_color = EXPLOSION_GREEN_COLOR if self.bomb_type == 'green' else EXPLOSION_YELLOW_COLOR
-        explosion = Explosion(self.x, self.y, self.explosion_range, explosion_color)
-        explosions.append(explosion)  # Add the explosion to the global list
+        self.explosion = Explosion(self.x, self.y, self.explosion_range, explosion_color)
+        explosions.append(self.explosion)  # Add the explosion to the global list
 
         self.check_explosion_destruction()
 
     def check_explosion_destruction(self):
         # Check if the explosion affects any players or breakable blocks
-        for explosion in explosions:
-            for sector in explosion.sectors:
-                # Ensure we're using integers to access the grid
-                grid_x, grid_y = int(sector[0]), int(sector[1])
-                
-                # Check if the player is in the explosion sector
-                if int(player.x) == grid_x and int(player.y) == grid_y:
-                    # Player is hit by the explosion, game over
-                    print("Player destroyed by explosion!")
-                    pygame.quit()
-                    sys.exit()
+        for sector in self.explosion.sectors:  # Only check sectors of its own explosion
+            grid_x, grid_y = int(sector[0]), int(sector[1])
 
-                # Check if there is a breakable block in the sector
-                if map.matrix[grid_y][grid_x] == 2:  # Breakable block
-                    map.matrix[grid_y][grid_x] = 0  # Destroy the block
+            # Check if any player is hit
+            for i, player in enumerate(players):
+                if int(player.x) == grid_x and int(player.y) == grid_y:
+                    lives[i] -= 1
+                    print(f"Player {i+1} hit! Lives left: {lives[i]}")
+                    if lives[i] == 0:
+                        print(f"Player {i+1} has lost all lives. Game over!")
+                        pygame.quit()
+                        sys.exit()
+                    reset_game()
+
+            # Check if there is a breakable block in the sector
+            if map.matrix[grid_y][grid_x] == 2:  # Breakable block (now back to matrix[y][x] access)
+                map.matrix[grid_y][grid_x] = 0  # Destroy the block
 
     def draw(self, screen,color=BOMB_COLOR):
         super().draw(screen,color)  # Use GameObject's draw method
@@ -169,12 +184,32 @@ class Explosion(GameObject):
 
     def calculate_sectors(self):
         sectors = [[self.x, self.y]]  # The bomb's position
+
+        # Helper to calculate explosion in one direction
+        def spread_in_direction(dx, dy):
+            for i in range(1, self.range + 1):
+                grid_x = self.x + i * dx
+                grid_y = self.y + i * dy
+
+                # Check for unbreakable obstacle first
+                if map.is_unbreakable_obstacle(grid_x, grid_y):
+                    break  # Stop explosion at unbreakable obstacle
+
+                # Check for breakable obstacle
+                if map.is_breakable_obstacle(grid_x, grid_y):
+                    sectors.append([grid_x, grid_y])  # Add breakable block
+                    map.matrix[grid_y][grid_x] = 0  # Destroy breakable block
+                    break  # Stop explosion after breaking the block
+
+                # If no obstacle, continue adding sector
+                sectors.append([grid_x, grid_y])
+
         # Spread explosion in four directions
-        for i in range(1, self.range + 1):
-            sectors.append([self.x + i, self.y])  # Right
-            sectors.append([self.x - i, self.y])  # Left
-            sectors.append([self.x, self.y + i])  # Down
-            sectors.append([self.x, self.y - i])  # Up
+        spread_in_direction(1, 0)  # Right
+        spread_in_direction(-1, 0)  # Left
+        spread_in_direction(0, 1)  # Down
+        spread_in_direction(0, -1)  # Up
+
         return sectors
 
     def update(self):
@@ -195,21 +230,20 @@ class Explosion(GameObject):
             if (abs(player.x - sector[0]) <= TOLERANCE) and (abs(player.y - sector[1]) <= TOLERANCE):
                 return True
         return False
-            
+
 class Player(GameObject):
-    def __init__(self, x, y, bomb_type):
+    def __init__(self, x, y, bomb_type, player_id):
         super().__init__(x, y)
         self.speed = 0.05  # Movement speed in tile units per update
-        self.bomb_limit = 3  # Number of bombs the player can place at a time
-        self.placed_bombs = 0  # Track how many bombs are placed
         self.bomb_type = bomb_type  # Type of bombs the player can place
+        self.player_id = player_id  # Player ID
 
     def place_bomb(self):
         # Place bomb at the nearest grid position (round the player's current position)
-        if self.placed_bombs < self.bomb_limit:
-            bomb = Bomb(self, self.bomb_type, round(self.x), round(self.y))
+        if placed_bombs[self.player_id] < 3 and map.matrix[int(self.y)][int(self.x)] != 3:
+            bomb = Bomb(self.player_id, self.bomb_type, round(self.x), round(self.y))
             bombs.append(bomb)  # Add the bomb to the global bombs list
-            self.placed_bombs += 1  # Increment the count of placed bombs
+            placed_bombs[self.player_id] += 1  # Increment the count of placed bombs
 
     def move(self, controller):
         # Initialize new positions as current positions
@@ -244,37 +278,58 @@ class Player(GameObject):
         super().update_pixel_position()
 
     def check_collision_with_explosions(self):
-        # Check if the player has collided with any active explosions
         for explosion in explosions:
             if explosion.is_player_in_explosion(self):
-                print("Player destroyed by explosion!")
-                pygame.quit()
-                sys.exit()
+                lives[self.player_id] -= 1
+                print(f"Player {self.player_id + 1} hit by explosion! Lives left: {lives[self.player_id]}")
+                if lives[self.player_id] == 0:
+                    print(f"Player {self.player_id + 1} has lost all lives. Game over!")
+                    pygame.quit()
+                    sys.exit()
+                reset_game()  # Reset game after a player is hit
+
+# Reset the game when a player is hit
+def reset_game():
+    global players
+    players = [
+        Player(1, 1, "green", 0),
+        Player(GRID_WIDTH - 2, GRID_HEIGHT - 2, "yellow", 1)
+    ]
 
 # Function to draw the HUD
-def draw_hud(screen, player):
+def draw_hud(screen, timer):
     # Create a black background for the HUD
     pygame.draw.rect(screen, HUD_COLOR, (0, 0, SCREEN_WIDTH, HUD_HEIGHT))
-    # Display the player's position on the HUD
     font = pygame.font.SysFont(None, 36)
-    grid_position = player.get_grid_position()
-    pixel_position = (round(player.pixel_x, PRECISION), round(player.pixel_y - HUD_HEIGHT, PRECISION))
-    text = font.render(f"Grid Pos: {grid_position} | Pixel Pos: {pixel_position}", True, (255, 255, 255))  # White text
-    screen.blit(text, (10, 10))
+    # Player 1's lives (left corner)
+    text_p1 = font.render(f"P1 Lives: {lives[0]}", True, (255, 255, 255))
+    screen.blit(text_p1, (10, 10))
+    # Player 2's lives (right corner)
+    text_p2 = font.render(f"P2 Lives: {lives[1]}", True, (255, 255, 255))
+    screen.blit(text_p2, (SCREEN_WIDTH - 150, 10))
+    # Timer in the middle
+    text_timer = font.render(f"Timer: {int(timer)}", True, (255, 255, 255))
+    screen.blit(text_timer, (SCREEN_WIDTH // 2 - 50, 10))
 
 # Global list to track bombs and explosions
 bombs = []
 explosions = []
+players = []
+
+placed_bombs = [0, 0]  # Track placed bombs per player (2 players)
+lives = [3, 3]  # 3 lives for each player
+
 
 # Set up display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Bomberman Clone")
 
-# Create grid and player objects
-player = Player(1, 1, "green")
+# Initialize game
+reset_game()
 
 # Create clock object to manage frame rate
 clock = pygame.time.Clock()
+start_time = time.time()
 
 map = GameMap([
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -294,6 +349,7 @@ map = GameMap([
 running = True
 while running:
     dt = clock.tick(60)  # Delta time in milliseconds
+    current_time = time.time() - start_time
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -312,17 +368,18 @@ while running:
 
     # Key binding to place a bomb
     if controller[GameController.PLACE_BOMB]:
-        player.place_bomb()
+        players[0].place_bomb()  # Player 1 is active, Player 2 is static
 
     # Move player with key inputs
-    player.move(controller)
+    players[0].move(controller)
 
     # Check if player collides with any explosions
-    player.check_collision_with_explosions()
+    for player in players:
+        player.check_collision_with_explosions()
 
     # Clear the screen and redraw the grid and HUD
     screen.fill(BACKGROUND_COLOR)
-    draw_hud(screen, player)  # Draw HUD with player's position
+    draw_hud(screen, current_time)
     map.draw(screen)
 
     # Draw bombs
@@ -333,8 +390,9 @@ while running:
     for explosion in explosions:
         explosion.draw(screen)
 
-    # Draw the player on top of the grid
-    player.draw(screen, PLAYER_COLOR)
+    # Draw players
+    players[0].draw(screen, PLAYER_COLOR)
+    players[1].draw(screen, PLAYER_2_COLOR)
 
     # Update display
     pygame.display.flip()
