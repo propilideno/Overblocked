@@ -237,6 +237,7 @@ class Player(GameObject):
         self.speed = 0.05  # Movement speed in tile units per update
         self.bomb_type = bomb_type  # Type of bombs the player can place
         self.player_id = player_id  # Player ID
+        self.can_be_damaged = True
 
     def place_bomb(self):
         # Place bomb at the nearest grid position (round the player's current position)
@@ -279,8 +280,9 @@ class Player(GameObject):
 
     def check_collision_with_explosions(self):
         for explosion in explosions:
-            if explosion.is_player_in_explosion(self):
+            if (explosion.is_player_in_explosion(self) and self.can_be_damaged == True):
                 lives[self.player_id] -= 1
+                self.can_be_damaged = False # This magically work because player ir re-instanced every time he takes damage
                 print(f"Player {self.player_id + 1} hit by explosion! Lives left: {lives[self.player_id]}")
                 if lives[self.player_id] == 0:
                     print(f"Player {self.player_id + 1} has lost all lives. Game over!")
