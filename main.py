@@ -28,6 +28,20 @@ TOLERANCE = 0.1  # 10% tolerance for movement alignment
 EXPLOSION_GREEN_COLOR = (0, 255, 0)  # Green explosion
 EXPLOSION_YELLOW_COLOR = (255, 255, 0)  # Yellow explosion
 
+GAME_MATRIX = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+    [1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+]
+
 # Enum for movement types
 class MovementType(Enum):
     NONE = 0
@@ -105,6 +119,21 @@ class GameMap(GameObject):
         if 0 <= grid_y < map.height and 0 <= grid_x < map.width:
             return map.matrix[grid_y][grid_x] in [1, 2]  # Unbreakable (1) or breakable (2)
         return True  # Out of bounds is considered an obstacle
+
+    def return_map_to_original_state(self):
+        self.matrix = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+            [1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ]
 
     def draw(self, screen):
         for row in range(self.height):
@@ -200,6 +229,7 @@ class Explosion(GameObject):
 
                 # Verifica se há um bloco quebrável
                 if map.is_breakable_obstacle(grid_x, grid_y):
+                    #map.matrix[grid_y][grid_x] = 4
                     #sectors.append([grid_x, grid_y])  # Adiciona o bloco à lista de setores afetados
                     self.blocks_to_destroy.append((grid_x, grid_y))  # Marca o bloco para destruição
                     break  # Para a explosão após destruir o bloco
@@ -237,6 +267,8 @@ class Explosion(GameObject):
             if (abs(player.x - sector[0]) <= TOLERANCE) and (abs(player.y - sector[1]) <= TOLERANCE):
                 return True
         return False
+
+map = GameMap(GAME_MATRIX)
 
 class Player(GameObject):
     def __init__(self, x, y, bomb_type, player_id):
@@ -297,14 +329,18 @@ class Player(GameObject):
                     sys.exit()
                 reset_game()  # Reset game after a player is hit
 
+
+
 # Reset the game when a player is hit
 def reset_game():
-    global players, bombs, explosions, placed_bombs
+    global players, bombs, explosions, placed_bombs, map
 
     # Clear bombs and explosion
     bombs.clear()
     explosions.clear()
     placed_bombs = [0, 0]
+
+    map.return_map_to_original_state()
 
     # Replace players
     players = [
@@ -348,19 +384,7 @@ reset_game()
 clock = pygame.time.Clock()
 start_time = time.time()
 
-map = GameMap([
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
-    [1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-])
+
 
 # Main loop
 running = True
