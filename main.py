@@ -157,8 +157,10 @@ class Bomb(GameObject):
 
             # Check if any player is hit
             for i, player in enumerate(players):
-                if int(player.x) == grid_x and int(player.y) == grid_y:
+                if int(player.x) == grid_x and int(player.y) == grid_y and player.can_be_damaged == True:
                     lives[i] -= 1
+                    player.can_be_damaged = False
+
                     print(f"Player {i+1} hit! Lives left: {lives[i]}")
                     if lives[i] == 0:
                         print(f"Player {i+1} has lost all lives. Game over!")
@@ -191,18 +193,20 @@ class Explosion(GameObject):
                 grid_x = self.x + i * dx
                 grid_y = self.y + i * dy
 
-                # Check for unbreakable obstacle first
+                # Verifica se há um obstáculo inquebrável
                 if map.is_unbreakable_obstacle(grid_x, grid_y):
-                    break  # Stop explosion at unbreakable obstacle
+                    break  # Para a explosão ao encontrar um obstáculo inquebrável
 
-                # Check for breakable obstacle
+                # Verifica se há um bloco quebrável
                 if map.is_breakable_obstacle(grid_x, grid_y):
-                    sectors.append([grid_x, grid_y])  # Add breakable block
-                    map.matrix[grid_y][grid_x] = 0  # Destroy breakable block
-                    break  # Stop explosion after breaking the block
+                    map.matrix[grid_y][grid_x] = 0  # Destrói o bloco quebrável
+                    sectors.append([grid_x, grid_y])  # Adiciona o bloco à lista de setores afetados
+                    break  # Para a explosão após destruir o bloco
 
-                # If no obstacle, continue adding sector
+                # Se não houver obstáculo, continua adicionando o setor
                 sectors.append([grid_x, grid_y])
+
+
 
         # Spread explosion in four directions
         spread_in_direction(1, 0)  # Right
@@ -292,11 +296,19 @@ class Player(GameObject):
 
 # Reset the game when a player is hit
 def reset_game():
-    global players
+    global players, bombs, explosions, placed_bombs
+
+    # Clear bombs and explosion
+    bombs.clear()
+    explosions.clear()
+    placed_bombs = [0, 0]
+
+    # Replace players
     players = [
         Player(1, 1, "green", 0),
         Player(GRID_WIDTH - 2, GRID_HEIGHT - 2, "yellow", 1)
     ]
+
 
 # Function to draw the HUD
 def draw_hud(screen, timer):
@@ -335,15 +347,15 @@ start_time = time.time()
 
 map = GameMap([
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 2, 1],
-    [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-    [1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 2, 1],
-    [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+    [1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ])
 
