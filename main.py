@@ -178,16 +178,17 @@ class Bomb(GameObject):
 
 class Explosion(GameObject):
     def __init__(self, x, y, explosion_range, color):
-        super().__init__(x, y)  # Initialize the explosion's position
+        super().__init__(x, y)  # Inicializa a posição da explosão
         self.range = explosion_range
         self.color = color
+        self.blocks_to_destroy = []  # Lista para armazenar blocos a serem destruídos
         self.sectors = self.calculate_sectors()
         self.start_time = time.time()
 
     def calculate_sectors(self):
-        sectors = [[self.x, self.y]]  # The bomb's position
+        sectors = [[self.x, self.y]]  # Posição inicial da bomba
 
-        # Helper to calculate explosion in one direction
+        # Função auxiliar para calcular a explosão em uma direção
         def spread_in_direction(dx, dy):
             for i in range(1, self.range + 1):
                 grid_x = self.x + i * dx
@@ -199,34 +200,36 @@ class Explosion(GameObject):
 
                 # Verifica se há um bloco quebrável
                 if map.is_breakable_obstacle(grid_x, grid_y):
-                    map.matrix[grid_y][grid_x] = 0  # Destrói o bloco quebrável
-                    sectors.append([grid_x, grid_y])  # Adiciona o bloco à lista de setores afetados
+                    #sectors.append([grid_x, grid_y])  # Adiciona o bloco à lista de setores afetados
+                    self.blocks_to_destroy.append((grid_x, grid_y))  # Marca o bloco para destruição
                     break  # Para a explosão após destruir o bloco
 
                 # Se não houver obstáculo, continua adicionando o setor
                 sectors.append([grid_x, grid_y])
 
-
-
-        # Spread explosion in four directions
-        spread_in_direction(1, 0)  # Right
-        spread_in_direction(-1, 0)  # Left
-        spread_in_direction(0, 1)  # Down
-        spread_in_direction(0, -1)  # Up
+        # Propaga a explosão nas quatro direções
+        spread_in_direction(1, 0)  # Direita
+        spread_in_direction(-1, 0)  # Esquerda
+        spread_in_direction(0, 1)  # Baixo
+        spread_in_direction(0, -1)  # Cima
 
         return sectors
 
     def update(self):
-        # Remove the explosion after its duration
-        if time.time() - self.start_time > 1:  # Explosion lasts for 1 second
+        # Remove a explosão após sua duração
+        if time.time() - self.start_time > 1:  # A explosão dura 1 segundo
+            # Destrói os blocos após a explosão terminar
+            for (grid_x, grid_y) in self.blocks_to_destroy:
+                map.matrix[grid_y][grid_x] = 0  # Destrói o bloco marcado
             explosions.remove(self)
 
     def draw(self, screen):
-        # Draw the explosion sectors
+        # Desenha os setores da explosão
         for sector in self.sectors:
             pixel_x = sector[0] * TILE_SIZE
             pixel_y = sector[1] * TILE_SIZE + HUD_HEIGHT
             pygame.draw.rect(screen, self.color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+
 
     def is_player_in_explosion(self, player):
         # Use TOLERANCE to check if the player is within the explosion area
