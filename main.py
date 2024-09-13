@@ -17,6 +17,7 @@ SCREEN_HEIGHT = TILE_SIZE * GRID_HEIGHT + HUD_HEIGHT  # Adding space for HUD
 BACKGROUND_COLOR = (50, 150, 50)  # Green for the background
 GRID_COLOR = (200, 200, 200)  # Light grey for the grid
 BREAKABLE_COLOR = (139, 69, 19)   # Breakable objects (brown)
+BREAKING_COLOR = (240, 240, 19)   # Breakable objects (brown)
 BOMB_COLOR = (0, 0, 0)  # Bombs are black
 OBSTACLE_COLOR = (100, 100, 100)  # Dark grey for unbreakable obstacles
 PLAYER_COLOR = (255, 0, 0)  # Red player
@@ -107,7 +108,7 @@ class GameMap(GameObject):
 
     def is_unbreakable_obstacle(self, grid_x, grid_y):
         if 0 <= grid_y < self.height and 0 <= grid_x < self.width:
-            return self.matrix[grid_y][grid_x] == 1
+            return self.matrix[grid_y][grid_x] in [1,-2]
         return False
 
     def is_breakable_obstacle(self, grid_x, grid_y):
@@ -124,13 +125,13 @@ class GameMap(GameObject):
         self.matrix = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
-            [1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+            [1, 0, 1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 2, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 2, 1],
+            [1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         ]
@@ -145,6 +146,8 @@ class GameMap(GameObject):
                     color = BREAKABLE_COLOR  # Breakable
                 elif self.matrix[row][col] == 3:
                     color = BOMB_COLOR  # Bomb
+                elif self.matrix[row][col] == -2:
+                    color = BREAKING_COLOR
                 pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))  # Adjust for HUD
                 pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)  # Grid lines
 
@@ -198,7 +201,7 @@ class Bomb(GameObject):
                     reset_game()
 
             # Check if there is a breakable block in the sector
-            if map.matrix[grid_y][grid_x] == 2:  # Breakable block (now back to matrix[y][x] access)
+            if map.matrix[grid_y][grid_x] in [-2,2]:  # Breakable block (now back to matrix[y][x] access)
                 map.matrix[grid_y][grid_x] = 0  # Destroy the block
 
     def draw(self, screen,color=BOMB_COLOR):
@@ -229,7 +232,7 @@ class Explosion(GameObject):
 
                 # Verifica se há um bloco quebrável
                 if map.is_breakable_obstacle(grid_x, grid_y):
-                    #map.matrix[grid_y][grid_x] = 4
+                    map.matrix[grid_y][grid_x] = -2
                     #sectors.append([grid_x, grid_y])  # Adiciona o bloco à lista de setores afetados
                     self.blocks_to_destroy.append((grid_x, grid_y))  # Marca o bloco para destruição
                     break  # Para a explosão após destruir o bloco
@@ -383,8 +386,6 @@ reset_game()
 # Create clock object to manage frame rate
 clock = pygame.time.Clock()
 start_time = time.time()
-
-
 
 # Main loop
 running = True
