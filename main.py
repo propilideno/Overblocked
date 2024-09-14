@@ -4,6 +4,7 @@ from math import ceil
 import time
 import sys
 import threading
+import copy
 
 # Initialize Pygame
 pygame.init()
@@ -102,7 +103,7 @@ class GameMap(GameObject):
         super().__init__(0, 0)  # Initialize at grid origin
         self.width = len(matrix[0])
         self.height = len(matrix)
-        self.matrix = matrix
+        self.matrix = copy.deepcopy(matrix)
 
     def is_position_walkable(self, x, y, player):
         return not self.is_obstacle(x,y, player)
@@ -132,19 +133,7 @@ class GameMap(GameObject):
         return True  # Out of bounds is considered an obstacle
 
     def return_map_to_original_state(self):
-        self.matrix = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 2, 0, 2, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2, 0, 1],
-            [1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ]
+        self.matrix = copy.deepcopy(GAME_MATRIX)
 
     def draw(self, screen):
         for row in range(self.height):
