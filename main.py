@@ -3,6 +3,7 @@ from enum import Enum
 from math import ceil
 import time
 import sys
+import threading
 
 # Initialize Pygame
 pygame.init()
@@ -103,8 +104,8 @@ class GameMap(GameObject):
         self.height = len(matrix)
         self.matrix = matrix
 
-    def is_position_walkable(self, x, y):
-        return not self.is_obstacle(x,y)
+    def is_position_walkable(self, x, y, player):
+        return not self.is_obstacle(x,y, player)
 
     def is_unbreakable_obstacle(self, grid_x, grid_y):
         if 0 <= grid_y < self.height and 0 <= grid_x < self.width:
@@ -116,9 +117,18 @@ class GameMap(GameObject):
             return self.matrix[grid_y][grid_x] == 2
         return False
 
-    def is_obstacle(self, grid_x, grid_y):
+    def is_obstacle(self, grid_x, grid_y, player):
         if 0 <= grid_y < map.height and 0 <= grid_x < map.width:
-            return map.matrix[grid_y][grid_x] in [1, 2]  # Unbreakable (1) or breakable (2)
+            # Permite atravessar a bomba temporariamente se o player estiver no tile da bomba que acabou de colocar
+            if player.just_placed_bomb is not None:
+                #print("player just placed bomb is: ", player.just_placed_bomb, " in is_obstacle and player is: ", player.x, player.y)
+                if map.matrix[grid_y][grid_x] == 3:
+                    print("é bomba")
+                    if player.x <= player.just_placed_bomb[0] + 1 and player.x >= player.just_placed_bomb[0] -1 and player.y <= player.just_placed_bomb[1] +1 and player.y >= player.just_placed_bomb[1] -1:
+                        print("permitido")
+                        return False  # Permite atravessar a bomba
+            return map.matrix[grid_y][grid_x] in [1, 2, 3]  # Unbreakable (1), breakable (2) or bomb (3)
+        
         return True  # Out of bounds is considered an obstacle
 
     def return_map_to_original_state(self):
@@ -147,7 +157,7 @@ class GameMap(GameObject):
                 elif self.matrix[row][col] == 3:
                     color = BOMB_COLOR  # Bomb
                 elif self.matrix[row][col] == -2:
-                    color = BREAKING_COLOR
+                    color = BREAKING_COLOR # Breaking
                 pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))  # Adjust for HUD
                 pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)  # Grid lines
 
@@ -189,9 +199,9 @@ class Bomb(GameObject):
 
             # Check if any player is hit
             for i, player in enumerate(players):
-                if int(player.x) == grid_x and int(player.y) == grid_y and player.can_be_damaged == True:
+                if int(player.x) == grid_x and int(player.y) == grid_y:
                     lives[i] -= 1
-                    player.can_be_damaged = False
+                    
 
                     print(f"Player {i+1} hit! Lives left: {lives[i]}")
                     if lives[i] == 0:
@@ -250,7 +260,7 @@ class Explosion(GameObject):
 
     def update(self):
         # Remove a explosão após sua duração
-        if time.time() - self.start_time > 1:  # A explosão dura 1 segundo
+        if time.time() - self.start_time > 0.4:  # A explosão dura 1 segundo
             # Destrói os blocos após a explosão terminar
             for (grid_x, grid_y) in self.blocks_to_destroy:
                 map.matrix[grid_y][grid_x] = 0  # Destrói o bloco marcado
@@ -279,41 +289,61 @@ class Player(GameObject):
         self.speed = 0.05  # Movement speed in tile units per update
         self.bomb_type = bomb_type  # Type of bombs the player can place
         self.player_id = player_id  # Player ID
-        self.can_be_damaged = True
+        self.can_place_bomb = True
+        self.just_placed_bomb = None
 
     def place_bomb(self):
         # Place bomb at the nearest grid position (round the player's current position)
-        if placed_bombs[self.player_id] < 3 and map.matrix[int(self.y)][int(self.x)] != 3:
-            bomb = Bomb(self.player_id, self.bomb_type, round(self.x), round(self.y))
+        if placed_bombs[self.player_id] < 3 and map.matrix[int(self.y)][int(self.x)] != 3 and self.can_place_bomb:
+            x_bomb = round(self.x)
+            y_bomb = round(self.y)
+            #print("place bomb at ", x_bomb, y_bomb)
+            bomb = Bomb(self.player_id, self.bomb_type, x_bomb, y_bomb)
             bombs.append(bomb)  # Add the bomb to the global bombs list
+            
+            # Permite o player atravessar a bomba temporariamente
+            self.just_placed_bomb = (x_bomb, y_bomb)
+            print("just placed bomb value: ", self.just_placed_bomb)
+            
+            map.matrix[y_bomb][x_bomb] = 3  # Mark the grid as having a bomb
+            self.can_place_bomb = False
             placed_bombs[self.player_id] += 1  # Increment the count of placed bombs
+            # Reativa a capacidade de colocar bomba após 3 segundos (por exemplo)
+            threading.Timer(3, self.reactivate_bomb_placement).start()
+
+    def reactivate_bomb_placement(self):
+        self.can_place_bomb = True
 
     def move(self, controller):
         # Initialize new positions as current positions
         new_x, new_y = self.x, self.y
-
+        if self.just_placed_bomb is not None:
+            if self.x >= self.just_placed_bomb[0] + 1 or self.x <= self.just_placed_bomb[0] -1 or self.y >= self.just_placed_bomb[1] +1 or self.y <= self.just_placed_bomb[1] -1:
+                print("valor nulado", self.x, self.y)
+                self.just_placed_bomb = None
+            
         # Handle movement using GameController keys
         if controller[GameController.UP]:
             new_y = self.y - self.speed
-            if map.is_position_walkable(int(self.x), int(new_y)):
+            if map.is_position_walkable(int(self.x), int(new_y), self):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
         if controller[GameController.DOWN]:
             new_y = self.y + self.speed
-            if map.is_position_walkable(int(self.x), ceil(new_y)):
+            if map.is_position_walkable(int(self.x), ceil(new_y), self):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
         if controller[GameController.LEFT]:
             new_x = self.x - self.speed
-            if map.is_position_walkable(int(new_x), int(self.y)):
+            if map.is_position_walkable(int(new_x), int(self.y), self):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
         if controller[GameController.RIGHT]:
             new_x = self.x + self.speed
-            if map.is_position_walkable(ceil(new_x), int(self.y)):
+            if map.is_position_walkable(ceil(new_x), int(self.y), self):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
@@ -322,9 +352,8 @@ class Player(GameObject):
 
     def check_collision_with_explosions(self):
         for explosion in explosions:
-            if (explosion.is_player_in_explosion(self) and self.can_be_damaged == True):
+            if (explosion.is_player_in_explosion(self)):
                 lives[self.player_id] -= 1
-                self.can_be_damaged = False # This magically work because player ir re-instanced every time he takes damage
                 print(f"Player {self.player_id + 1} hit by explosion! Lives left: {lives[self.player_id]}")
                 if lives[self.player_id] == 0:
                     print(f"Player {self.player_id + 1} has lost all lives. Game over!")
