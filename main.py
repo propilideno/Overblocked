@@ -1,27 +1,36 @@
+# main.py
+
 import pygame
-from enum import Enum
-from math import ceil
 import time
 import sys
+import asyncio
+import json
 
-from game import *
 from settings import *
 
-def main():
-    global lives, map
-
+async def main():
+    # Initialize Pygame
     pygame.init()
-
-    # Initialize game
-    reset_game()
 
     # Set up display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Bomberman Clone")
 
+    # Connect to server
+    uri = "ws://localhost:8765"
+    try:
+        websocket = await asyncio.wait_for(websockets.connect(uri), timeout=5)
+    except Exception as e:
+        print(f"Unable to connect to server: {e}")
+        pygame.quit()
+        return
+
     # Create clock object to manage frame rate
     clock = pygame.time.Clock()
     start_time = time.time()
+
+    # Variables to store game state
+    game_state = None
 
     # Main loop
     running = True
@@ -33,44 +42,34 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        # In the game loop, update bombs and explosions
-        for bomb in bombs:
-            bomb.update()
-
-        for explosion in explosions:
-            explosion.update()
-
         # Get key presses
         keys = pygame.key.get_pressed()
-        controller = GameController(keys)
+        controller_input = {
+            'up': keys[pygame.K_UP] or keys[pygame.K_w],
+            'down': keys[pygame.K_DOWN] or keys[pygame.K_s],
+            'left': keys[pygame.K_LEFT] or keys[pygame.K_a],
+            'right': keys[pygame.K_RIGHT] or keys[pygame.K_d],
+            'place_bomb': keys[pygame.K_SPACE]
+        }
 
-        # Key binding to place a bomb
-        if controller[GameController.PLACE_BOMB]:
-            players[0].place_bomb()  # Player 1 is active, Player 2 is static
+        # Send input to server
+        input_data = {'controller': controller_input}
+        await websocket.send(json.dumps(input_data))
 
-        # Move player with key inputs
-        players[0].move(controller)
-
-        # Check if player collides with any explosions
-        for player in players:
-            player.check_collision_with_explosions()
+        # Receive game state from server
+        try:
+            message = await websocket.recv()
+            game_state = json.loads(message)
+        except websockets.exceptions.ConnectionClosed:
+            print("Server connection closed")
+            running = False
+            break
 
         # Clear the screen and redraw the grid and HUD
         screen.fill(BACKGROUND_COLOR)
-        draw_hud(screen, current_time)
-        map.draw(screen)
-
-        # Draw bombs
-        for bomb in bombs:
-            bomb.draw(screen)
-
-        # Draw explosions
-        for explosion in explosions:
-            explosion.draw(screen)
-
-        # Draw players
-        players[0].draw(screen, PLAYER_COLOR)
-        players[1].draw(screen, PLAYER_2_COLOR)
+        if game_state:
+            draw_game(screen, game_state)
+            draw_hud(screen, current_time, game_state['lives'])
 
         # Update display
         pygame.display.flip()
@@ -78,8 +77,51 @@ def main():
     # Quit Pygame
     pygame.quit()
 
+def draw_game(screen, game_state):
+    # Draw the map
+    map_matrix = game_state['map']
+    for row in range(len(map_matrix)):
+        for col in range(len(map_matrix[0])):
+            cell_value = map_matrix[row][col]
+            color = BACKGROUND_COLOR
+            if cell_value == 1:
+                color = OBSTACLE_COLOR  # Unbreakable
+            elif cell_value == 2:
+                color = BREAKABLE_COLOR  # Breakable
+            elif cell_value == 3:
+                color = BOMB_COLOR  # Bomb
+            elif cell_value == -2:
+                color = BREAKING_COLOR  # Breaking
+            pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
+            pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
+
+    # Draw bombs
+    for bomb in game_state['bombs']:
+        x = bomb['x']
+        y = bomb['y']
+        pixel_x = x * TILE_SIZE
+        pixel_y = y * TILE_SIZE + HUD_HEIGHT
+        pygame.draw.rect(screen, BOMB_COLOR, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+
+    # Draw explosions
+    for explosion in game_state['explosions']:
+        for sector in explosion['sectors']:
+            x, y = sector
+            pixel_x = x * TILE_SIZE
+            pixel_y = y * TILE_SIZE + HUD_HEIGHT
+            pygame.draw.rect(screen, (255, 0, 0), (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+
+    # Draw players
+    for player in game_state['players']:
+        x = player['x']
+        y = player['y']
+        pixel_x = x * TILE_SIZE
+        pixel_y = y * TILE_SIZE + HUD_HEIGHT
+        color = PLAYER_COLOR if player['id'] == 0 else PLAYER_2_COLOR
+        pygame.draw.rect(screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+
 # Function to draw the HUD
-def draw_hud(screen, timer):
+def draw_hud(screen, timer, lives):
     # Create a black background for the HUD
     pygame.draw.rect(screen, HUD_COLOR, (0, 0, SCREEN_WIDTH, HUD_HEIGHT))
     font = pygame.font.SysFont(None, 36)
@@ -94,4 +136,5 @@ def draw_hud(screen, timer):
     screen.blit(text_timer, (SCREEN_WIDTH // 2 - 50, 10))
 
 if __name__ == '__main__':
-    main()
+    import websockets
+    asyncio.run(main())

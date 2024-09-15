@@ -23,26 +23,17 @@ class MovementType(Enum):
     DIAGONAL = 2
 
 class GameController:
-    UP = 0
-    DOWN = 1
-    LEFT = 2
-    RIGHT = 3
-    PLACE_BOMB = 4
+    UP = 'up'
+    DOWN = 'down'
+    LEFT = 'left'
+    RIGHT = 'right'
+    PLACE_BOMB = 'place_bomb'
 
-    key_map = {
-        UP: [pygame.K_UP, pygame.K_w],
-        DOWN: [pygame.K_DOWN, pygame.K_s],
-        LEFT: [pygame.K_LEFT, pygame.K_a],
-        RIGHT: [pygame.K_RIGHT, pygame.K_d],
-        PLACE_BOMB: [pygame.K_SPACE]
-    }
-
-    def __init__(self, keys):
-        self.keys = keys
+    def __init__(self, input_data):
+        self.input_data = input_data
 
     def __getitem__(self, direction):
-        # Return True if any key associated with the direction is pressed
-        return any(self.keys[key] for key in GameController.key_map[direction])
+        return self.input_data.get(direction, False)
 
 # Base class for all objects that need to know about tile size
 class GameObject:
@@ -322,40 +313,39 @@ class Player(GameObject):
         self.can_place_bomb = True
 
     def move(self, controller):
-        # Initialize new positions as current positions
         new_x, new_y = self.x, self.y
         if self.just_placed_bomb is not None:
-            if self.x >= self.just_placed_bomb[0] + 1 or self.x <= self.just_placed_bomb[0] -1 or self.y >= self.just_placed_bomb[1] +1 or self.y <= self.just_placed_bomb[1] -1:
-                print("valor nulado", self.x, self.y)
+            if (self.x >= self.just_placed_bomb[0] + 1 or self.x <= self.just_placed_bomb[0] - 1 or
+                    self.y >= self.just_placed_bomb[1] + 1 or self.y <= self.just_placed_bomb[1] - 1):
                 self.just_placed_bomb = None
-            
-        # Handle movement using GameController keys
-        if controller[GameController.UP]:
+
+        # Handle movement using GameController input
+        if controller['up']:
             new_y = self.y - self.speed
             if map.is_position_walkable(int(self.x), int(new_y), self):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
-        if controller[GameController.DOWN]:
+        if controller['down']:
             new_y = self.y + self.speed
             if map.is_position_walkable(int(self.x), ceil(new_y), self):
                 if int(self.x) == self.x:
                     self.y = round(new_y, PRECISION)
 
-        if controller[GameController.LEFT]:
+        if controller['left']:
             new_x = self.x - self.speed
             if map.is_position_walkable(int(new_x), int(self.y), self):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
-        if controller[GameController.RIGHT]:
+        if controller['right']:
             new_x = self.x + self.speed
             if map.is_position_walkable(ceil(new_x), int(self.y), self):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
         # Update player position after calculating new positions
-        super().update_pixel_position()
+        self.update_pixel_position()
 
     def check_collision_with_explosions(self):
         for explosion in explosions:
