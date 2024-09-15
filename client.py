@@ -12,7 +12,7 @@ async def main():
 
     # Set up display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Bomberman Clone")
+    pygame.display.set_caption("Overblocked")
 
     # Connect to server
     uri = "ws://localhost:8765"
