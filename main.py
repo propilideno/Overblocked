@@ -86,10 +86,10 @@ def draw_game(screen, game_state):
                 color = OBSTACLE_COLOR  # Unbreakable
             elif cell_value == 2:
                 color = BREAKABLE_COLOR  # Breakable
-            elif cell_value == 3:
-                color = BOMB_COLOR  # Bomb
             elif cell_value == -2:
                 color = BREAKING_COLOR  # Breaking
+            elif cell_value == 3:
+                color = BOMB_COLOR  # Bomb
             pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
             pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
 
@@ -103,11 +103,18 @@ def draw_game(screen, game_state):
 
     # Draw explosions
     for explosion in game_state['explosions']:
+        bomb_type = explosion['bomb_type']
+        if bomb_type == 'BOMB_TYPE_1':
+            color = PLAYER1_EXPLOSION_COLOR
+        elif bomb_type == 'BOMB_TYPE_2':
+            color = PLAYER2_EXPLOSION_COLOR
+        else:
+            color = (255, 0, 0)  # Default color if bomb_type is unknown
         for sector in explosion['sectors']:
             x, y = sector
             pixel_x = x * TILE_SIZE
             pixel_y = y * TILE_SIZE + HUD_HEIGHT
-            pygame.draw.rect(screen, (255, 0, 0), (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+            pygame.draw.rect(screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
 
     # Draw players
     for player in game_state['players']:

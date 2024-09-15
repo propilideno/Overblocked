@@ -22,7 +22,7 @@ def serialize_game_state():
             for b in bombs
         ],
         'explosions': [
-            {'sectors': e.sectors}
+            {'sectors': e.sectors, 'bomb_type': e.bomb_type}
             for e in explosions
         ],
         'map': map.matrix,
@@ -60,9 +60,9 @@ async def handle_client(websocket, path):
 
     # Add player to the game
     if player_id == 0:
-        players.append(Player(1, 1, "green", player_id))
+        players.append(Player(1, 1, "BOMB_TYPE_1", player_id))
     else:
-        players.append(Player(map.width - 2, map.height - 2, "yellow", player_id))
+        players.append(Player(map.width - 2, map.height - 2, "BOMB_TYPE_2", player_id))
 
     lives.append(PLAYER_LIVES)
     connected_clients[player_id] = websocket

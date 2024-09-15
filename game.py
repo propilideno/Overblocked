@@ -56,10 +56,6 @@ class GameObject:
         self.pixel_x = round(self.x * TILE_SIZE, PRECISION)
         self.pixel_y = round(self.y * TILE_SIZE, PRECISION) + HUD_HEIGHT
 
-
-    def draw(self, screen, color):
-        pygame.draw.rect(screen, color, (self.pixel_x, self.pixel_y, TILE_SIZE, TILE_SIZE))
-
 class GameMap(GameObject):
     def __init__(self, map_number=0):
         super().__init__(0, 0)  # Initialize at grid origin
@@ -146,21 +142,6 @@ class GameMap(GameObject):
     def return_map_to_original_state(self):
         self.matrix = copy.deepcopy(self.maps[self.map_number])
 
-    def draw(self, screen):
-        for row in range(self.height):
-            for col in range(self.width):
-                color = BACKGROUND_COLOR
-                if self.matrix[row][col] == 1:
-                    color = OBSTACLE_COLOR  # Unbreakable
-                elif self.matrix[row][col] == 2:
-                    color = BREAKABLE_COLOR  # Breakable
-                elif self.matrix[row][col] == 3:
-                    color = BOMB_COLOR  # Bomb
-                elif self.matrix[row][col] == -2:
-                    color = BREAKING_COLOR # Breaking
-                pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))  # Adjust for HUD
-                pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)  # Grid lines
-
 class Bomb(GameObject):
     def __init__(self, player_id, bomb_type, x, y):
         super().__init__(round(x), round(y))  # Initialize the Bomb's at the nearest grid
@@ -186,8 +167,7 @@ class Bomb(GameObject):
         placed_bombs[self.player_id] -= 1  # Decrement the count of placed bombs
         
         # Trigger the explosion, affecting the grid
-        explosion_color = EXPLOSION_GREEN_COLOR if self.bomb_type == 'green' else EXPLOSION_YELLOW_COLOR
-        self.explosion = Explosion(self.x, self.y, self.explosion_range, explosion_color)
+        self.explosion = Explosion(self.x, self.y, self.explosion_range, self.bomb_type)
         explosions.append(self.explosion)  # Add the explosion to the global list
 
         self.check_explosion_destruction()
@@ -212,15 +192,11 @@ class Bomb(GameObject):
             if map.matrix[grid_y][grid_x] in [-2,2]:  # Breakable block (now back to matrix[y][x] access)
                 map.matrix[grid_y][grid_x] = 0  # Destroy the block
 
-    def draw(self, screen,color=BOMB_COLOR):
-        super().draw(screen,color)  # Use GameObject's draw method
-
-
 class Explosion(GameObject):
-    def __init__(self, x, y, explosion_range, color):
+    def __init__(self, x, y, explosion_range, bomb_type):
         super().__init__(x, y)  # Inicializa a posição da explosão
         self.range = explosion_range
-        self.color = color
+        self.bomb_type = bomb_type
         self.blocks_to_destroy = []  # Lista para armazenar blocos a serem destruídos
         self.sectors = self.calculate_sectors()
         self.start_time = time.time()
@@ -263,14 +239,6 @@ class Explosion(GameObject):
             for (grid_x, grid_y) in self.blocks_to_destroy:
                 map.matrix[grid_y][grid_x] = 0  # Destrói o bloco marcado
             explosions.remove(self)
-
-    def draw(self, screen):
-        # Desenha os setores da explosão
-        for sector in self.sectors:
-            pixel_x = sector[0] * TILE_SIZE
-            pixel_y = sector[1] * TILE_SIZE + HUD_HEIGHT
-            pygame.draw.rect(screen, self.color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
-
 
     def is_player_in_explosion(self, player):
         # Use TOLERANCE to check if the player is within the explosion area

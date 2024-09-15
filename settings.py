@@ -29,13 +29,13 @@ OBSTACLE_COLOR = tuple(colors['obstacle_color'])
 PLAYER_COLOR = tuple(colors['player_color'])
 PLAYER_2_COLOR = tuple(colors['player_2_color'])
 HUD_COLOR = tuple(colors['hud_color'])
-EXPLOSION_GREEN_COLOR = tuple(colors['explosion_green_color'])
-EXPLOSION_YELLOW_COLOR = tuple(colors['explosion_yellow_color'])
+PLAYER1_EXPLOSION_COLOR = tuple(colors['player1_explosion_color'])
+PLAYER2_EXPLOSION_COLOR = tuple(colors['player2_explosion_color'])
 
 # __all__ to help LSP tools recognize exported variables
 __all__ = [
     'TILE_SIZE', 'GRID_WIDTH', 'GRID_HEIGHT', 'HUD_HEIGHT', 'SCREEN_WIDTH', 'SCREEN_HEIGHT',
     'PRECISION', 'TOLERANCE', 'BACKGROUND_COLOR', 'GRID_COLOR', 'BREAKABLE_COLOR',
     'BREAKING_COLOR', 'BOMB_COLOR', 'OBSTACLE_COLOR', 'PLAYER_COLOR', 'PLAYER_2_COLOR',
-    'HUD_COLOR', 'EXPLOSION_GREEN_COLOR', 'EXPLOSION_YELLOW_COLOR', 'PLAYER_LIVES', 'EXPLOSION_DURATION', 'BOMB_EXPLOSION_RANGE'
+    'HUD_COLOR', 'PLAYER_LIVES', 'EXPLOSION_DURATION', 'BOMB_EXPLOSION_RANGE', 'PLAYER1_EXPLOSION_COLOR', 'PLAYER2_EXPLOSION_COLOR'
 ]
