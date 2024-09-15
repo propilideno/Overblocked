@@ -13,8 +13,24 @@ bombs = []
 explosions = []
 players = []
 placed_bombs = [0, 0]  # Track placed bombs per player (2 players)
-lives = [PLAYER_LIVES, PLAYER_LIVES]
 current_map_number = 0  # To keep track of the current map
+
+def reset_game():
+    global lives
+    lives = [PLAYER_LIVES, PLAYER_LIVES]
+    reset_round()
+
+def reset_round():
+    # Reset players' positions instead of recreating them
+    for player in players:
+        if player.player_id == 0:
+            player.__init__(1, 1, "BOMB_TYPE_1", 0)
+        elif player.player_id == 1:
+            player.__init__(map.width - 2, map.height - 2, "BOMB_TYPE_2", 1)
+    explosions.clear()
+    bombs.clear()
+    placed_bombs[:] = [0,0]
+    map.next_map()
 
 # Enum for movement types
 class MovementType(Enum):
@@ -184,9 +200,8 @@ class Bomb(GameObject):
                     print(f"Player {i+1} hit! Lives left: {lives[i]}")
                     if lives[i] == 0:
                         print(f"Player {i+1} has lost all lives. Game over!")
-                        pygame.quit()
-                        sys.exit()
-                    reset_game()
+                        reset_game()
+                    reset_round()
 
             # Check if there is a breakable block in the sector
             if map.matrix[grid_y][grid_x] in [-2,2]:  # Breakable block (now back to matrix[y][x] access)
@@ -310,6 +325,9 @@ class Player(GameObject):
                 if int(self.y) == self.y:
                     self.x = round(new_x, PRECISION)
 
+        #if self.check_collision_with_explosions:
+        #    reset_round()    # Not working
+
         # Update player position after calculating new positions
         self.update_pixel_position()
 
@@ -320,38 +338,10 @@ class Player(GameObject):
                 print(f"Player {self.player_id + 1} hit by explosion! Lives left: {lives[self.player_id]}")
                 if lives[self.player_id] == 0:
                     print(f"Player {self.player_id + 1} has lost all lives. Game over!")
-                    pygame.quit()
-                    sys.exit()
-                reset_game()  # Reset game after a player is hit
-
-def reset_game():
-    global bombs, explosions, placed_bombs
-    # Clear bombs and explosions
-    bombs.clear()
-    explosions.clear()
-    placed_bombs = [0, 0]
-    map.next_map()
-
-    # Reset players' positions instead of recreating them
-    for player in players:
-        if player.player_id == 0:
-            player.x = 1
-            player.y = 1
-        elif player.player_id == 1:
-            player.x = GRID_WIDTH - 2
-            player.y = GRID_HEIGHT - 2
-        # Update pixel positions
-        player.update_pixel_position()
-        # Reset other attributes if necessary
-        player.can_place_bomb = True
-        player.just_placed_bomb = None
-
-    # Reset lives
-    for i in range(len(lives)):
-        lives[i] = PLAYER_LIVES
-
-    map.return_map_to_original_state()
-
+                    reset_game()
+                return True
+            else:
+                return False
 
 # Initialize game_map globally
 map = GameMap()

@@ -4,11 +4,9 @@ import json
 import time
 
 from game import Player, bombs, explosions, players, lives, reset_game, map
-from settings import PLAYER_LIVES
 
 # Keep track of connected clients and assign player IDs
 connected_clients = {}
-next_player_id = 0
 
 # Serialize the game state
 def serialize_game_state():
@@ -46,11 +44,7 @@ def process_input(player_id, input_data):
         player.place_bomb()
 
 async def handle_client(websocket):
-    global next_player_id
-
-    # Assign player ID
-    player_id = next_player_id
-    next_player_id += 1
+    player_id = len(players)
 
     if player_id > 1:
         # Only two players are allowed
@@ -64,7 +58,6 @@ async def handle_client(websocket):
     else:
         players.append(Player(map.width - 2, map.height - 2, "BOMB_TYPE_2", player_id))
 
-    lives.append(PLAYER_LIVES)
     connected_clients[player_id] = websocket
 
     try:
