@@ -7,6 +7,9 @@ from game import Player, bombs, explosions, players, lives, reset_game, map
 
 # Keep track of connected clients and assign player IDs
 connected_clients = {}
+game_is_running = False
+start_time = 0
+timestamp = 0
 
 # Serialize the game state
 def serialize_game_state():
@@ -25,7 +28,7 @@ def serialize_game_state():
         ],
         'map': map.matrix,
         'lives': lives,
-        'timestamp': time.time()
+        'timestamp': timestamp
     }
     return state
 
@@ -45,7 +48,6 @@ def process_input(player_id, input_data):
 
 async def handle_client(websocket):
     player_id = len(players)
-
     if player_id > 1:
         # Only two players are allowed
         await websocket.send(json.dumps({'error': 'Server full'}))
@@ -77,7 +79,16 @@ async def handle_client(websocket):
         del connected_clients[player_id]
 
 async def game_loop():
+    global start_time, game_is_running, timestamp
     while True:
+        if len(players) == 2 and not game_is_running:
+            start_time = time.time()
+            game_is_running = True
+        if game_is_running and len(players) == 2:
+            timestamp = time.time() - start_time
+        else:
+            game_is_running = False
+
         # Update bombs and explosions
         for bomb in bombs:
             bomb.update()

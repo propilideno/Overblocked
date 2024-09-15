@@ -25,7 +25,6 @@ async def main():
 
     # Create clock object to manage frame rate
     clock = pygame.time.Clock()
-    start_time = time.time()
 
     # Variables to store game state
     game_state = None
@@ -34,7 +33,6 @@ async def main():
     running = True
     while running:
         dt = clock.tick(60)  # Delta time in milliseconds
-        current_time = time.time() - start_time
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -68,7 +66,7 @@ async def main():
         if game_state:
             draw_game(screen, game_state)
             print(game_state)
-            draw_hud(screen, current_time, game_state['lives'])
+            draw_hud(screen, game_state['timestamp'], game_state['lives'])
 
         # Update display
         pygame.display.flip()
