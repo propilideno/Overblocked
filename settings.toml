@@ -1,0 +1,23 @@
+[game]
+player_lives = 3
+bomb_explosion_range = 3
+explosion_duration = 0.4
+tile_size = 50
+grid_width = 15
+grid_height = 11
+hud_height = 50
+precision = 3
+tolerance = 0.1
+
+[colors]
+background_color = [50, 150, 50]
+grid_color = [200, 200, 200]
+breakable_color = [139, 69, 19]
+breaking_color = [240, 240, 19]
+bomb_color = [0, 0, 0]
+obstacle_color = [100, 100, 100]
+player_color = [255, 0, 0]
+player_2_color = [0, 0, 255]
+hud_color = [0, 0, 0]
+explosion_green_color = [0, 255, 0]
+explosion_yellow_color = [255, 255, 0]
