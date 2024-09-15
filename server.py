@@ -3,7 +3,7 @@ import websockets
 import json
 import time
 
-from game import GameController, GameMap, Player, bombs, explosions, players, placed_bombs, lives, reset_game, map
+from game import Player, bombs, explosions, players, lives, reset_game, map
 from settings import PLAYER_LIVES
 
 # Keep track of connected clients and assign player IDs
@@ -45,7 +45,7 @@ def process_input(player_id, input_data):
     if controller.get('place_bomb'):
         player.place_bomb()
 
-async def handle_client(websocket, path):
+async def handle_client(websocket):
     global next_player_id
 
     # Assign player ID
@@ -86,9 +86,9 @@ async def handle_client(websocket, path):
 async def game_loop():
     while True:
         # Update bombs and explosions
-        for bomb in bombs[:]:
+        for bomb in bombs:
             bomb.update()
-        for explosion in explosions[:]:
+        for explosion in explosions:
             explosion.update()
 
         # Send game state to all connected clients
