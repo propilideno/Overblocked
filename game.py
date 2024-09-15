@@ -9,6 +9,7 @@ from math import ceil
 from settings import *
 
 # Global lists and variables
+lives = []
 bombs = []
 explosions = []
 players = []
@@ -16,8 +17,8 @@ placed_bombs = [0, 0]  # Track placed bombs per player (2 players)
 current_map_number = 0  # To keep track of the current map
 
 def reset_game():
-    global lives
-    lives = [PLAYER_LIVES, PLAYER_LIVES]
+    lives.clear()  # Clears the list but keeps the reference intact
+    lives.extend([PLAYER_LIVES, PLAYER_LIVES])  # Modify the existing list
     reset_round()
 
 def reset_round():

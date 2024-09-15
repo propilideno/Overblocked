@@ -67,6 +67,7 @@ async def main():
         screen.fill(BACKGROUND_COLOR)
         if game_state:
             draw_game(screen, game_state)
+            print(game_state)
             draw_hud(screen, current_time, game_state['lives'])
 
         # Update display
