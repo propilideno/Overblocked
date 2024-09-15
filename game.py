@@ -167,7 +167,7 @@ class Bomb(GameObject):
         self.player_id = player_id  # Store the player's ID
         self.bomb_type = bomb_type  # Type of bomb: green or yellow
         self.placed_at = time.time()  # Timestamp when the bomb was placed
-        self.explosion_range = 3  # How far the explosion spreads
+        self.explosion_range = BOMB_EXPLOSION_RANGE  # How far the explosion spreads
         self.is_exploded = False  # Track if the bomb has exploded
         self.explosion = None  # To store the explosion object
 
@@ -201,8 +201,6 @@ class Bomb(GameObject):
             for i, player in enumerate(players):
                 if int(player.x) == grid_x and int(player.y) == grid_y:
                     lives[i] -= 1
-                    
-
                     print(f"Player {i+1} hit! Lives left: {lives[i]}")
                     if lives[i] == 0:
                         print(f"Player {i+1} has lost all lives. Game over!")
@@ -366,10 +364,23 @@ def reset_game():
     placed_bombs = [0, 0]
     map.next_map()
 
-    # Modify the existing 'players' list instead of reassigning it
-    players.clear()
-    players.append(Player(1, 1, "green", 0))
-    players.append(Player(GRID_WIDTH - 2, GRID_HEIGHT - 2, "yellow", 1))
+    # Reset players' positions instead of recreating them
+    for player in players:
+        if player.player_id == 0:
+            player.x = 1
+            player.y = 1
+        elif player.player_id == 1:
+            player.x = GRID_WIDTH - 2
+            player.y = GRID_HEIGHT - 2
+        # Update pixel positions
+        player.update_pixel_position()
+        # Reset other attributes if necessary
+        player.can_place_bomb = True
+        player.just_placed_bomb = None
+
+    # Reset lives
+    for i in range(len(lives)):
+        lives[i] = PLAYER_LIVES
 
     map.return_map_to_original_state()
 
