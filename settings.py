@@ -1,8 +1,8 @@
-import tomllib
+import tomli
 
 # Load the TOML file
 with open('settings.toml', 'rb') as f:
-    data = tomllib.load(f)
+    data = tomli.load(f)
 
 # Load game settings
 game = data['game']

@@ -2,7 +2,7 @@
 player_lives = 3
 bomb_explosion_range = 3
 explosion_duration = 0.4
-tile_size = 50
+tile_size = 80
 grid_width = 15
 grid_height = 11
 hud_height = 50
