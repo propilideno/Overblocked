@@ -4,6 +4,7 @@ import json
 import time
 
 from game import Player, bombs, explosions, players, lives, reset_game, map
+from settings import SERVER_URL, SERVER_PORT
 
 # Keep track of connected clients and assign player IDs
 connected_clients = {}
@@ -104,11 +105,11 @@ async def game_loop():
 
 def main():
     reset_game()
-    start_server = websockets.serve(handle_client, 'localhost', 8765)
+    start_server = websockets.serve(handle_client, '0.0.0.0', SERVER_PORT)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start_server)
     loop.create_task(game_loop())
-    print("Server started on ws://localhost:8765")
+    print(f"Server started on ws://{SERVER_URL}:{SERVER_PORT}")
     loop.run_forever()
 
 if __name__ == "__main__":

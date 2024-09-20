@@ -4,6 +4,11 @@ import tomli
 with open('settings.toml', 'rb') as f:
     data = tomli.load(f)
 
+# Load server settings
+server = data['server']
+SERVER_URL = server['url']
+SERVER_PORT = server['port']
+
 # Load game settings
 game = data['game']
 TILE_SIZE = game['tile_size']
@@ -37,5 +42,5 @@ __all__ = [
     'TILE_SIZE', 'GRID_WIDTH', 'GRID_HEIGHT', 'HUD_HEIGHT', 'SCREEN_WIDTH', 'SCREEN_HEIGHT',
     'PRECISION', 'TOLERANCE', 'BACKGROUND_COLOR', 'GRID_COLOR', 'BREAKABLE_COLOR',
     'BREAKING_COLOR', 'BOMB_COLOR', 'OBSTACLE_COLOR', 'PLAYER_COLOR', 'PLAYER_2_COLOR',
-    'HUD_COLOR', 'PLAYER_LIVES', 'EXPLOSION_DURATION', 'BOMB_EXPLOSION_RANGE', 'PLAYER1_EXPLOSION_COLOR', 'PLAYER2_EXPLOSION_COLOR'
+    'HUD_COLOR', 'PLAYER_LIVES', 'EXPLOSION_DURATION', 'BOMB_EXPLOSION_RANGE', 'PLAYER1_EXPLOSION_COLOR', 'PLAYER2_EXPLOSION_COLOR', 'SERVER_URL', 'SERVER_PORT'
 ]

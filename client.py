@@ -15,9 +15,7 @@ async def main():
     pygame.display.set_caption("Overblocked")
 
     # Connect to server
-    uri = "ws://10.9.11.137:8765"
-    #uri = "ws://54.91.210.37:8765"
-    # uri = "ws://10.9.11.137:3306"
+    uri = f"ws://{SERVER_URL}:{SERVER_PORT}"
     try:
         websocket = await asyncio.wait_for(websockets.connect(uri), timeout=5)
     except Exception as e:

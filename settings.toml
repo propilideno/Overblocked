@@ -1,3 +1,7 @@
+[server]
+url = "localhost"
+port = 8765
+
 [game]
 player_lives = 3
 bomb_explosion_range = 3
