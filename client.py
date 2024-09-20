@@ -118,6 +118,7 @@ def draw_game(screen, game_state):
             pygame.draw.rect(screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
 
     # Draw players
+
     # Load the sprite sheet
     player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
     player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
@@ -143,6 +144,30 @@ def draw_game(screen, game_state):
 
         # Resize the sprite while maintaining the aspect ratio
         player1_idle_sprite = pygame.transform.scale(player1_idle_sprite, (new_width, new_height))
+
+        player2_idle_sprite = pygame.image.load('assets/cobra-idle.png').convert_alpha()
+
+        if player2_idle_sprite is None:
+            print("Image failed to load.")
+        else:
+            print("Image loaded successfully.")
+            print(player2_idle_sprite.get_size())
+            # Get original sprite dimensions
+            original_width, original_height = player2_idle_sprite.get_size()
+
+            # Calculate aspect ratio and new dimensions keeping within TILE_SIZE
+            aspect_ratio = original_width / original_height
+
+            # Calculate the new width and height while keeping the aspect ratio
+            if aspect_ratio > 1:  # Image is wider than tall
+                new_width = TILE_SIZE
+                new_height = int(TILE_SIZE / aspect_ratio)
+            else:  # Image is taller than wide
+                new_height = TILE_SIZE
+                new_width = int(TILE_SIZE * aspect_ratio)
+
+            # Resize the sprite while maintaining the aspect ratio
+            player2_idle_sprite = pygame.transform.scale(player2_idle_sprite, (new_width, new_height))
     for player in game_state['players']:
         x = player['x']
         y = player['y']
@@ -153,9 +178,7 @@ def draw_game(screen, game_state):
         if player['id'] == 0:
             screen.blit(player1_idle_sprite, (pixel_x, pixel_y))  # Use the player sprite at the calculated pixel coordinates
         else:
-            # Draw other players as rectangles for now
-            color = PLAYER_2_COLOR
-            pygame.draw.rect(screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+            screen.blit(player2_idle_sprite, (pixel_x, pixel_y))  # Use the player sprite at the calculated pixel coordinates
 # Function to draw the HUD
 def draw_hud(screen, timer, lives):
     # Create a black background for the HUD
