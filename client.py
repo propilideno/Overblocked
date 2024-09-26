@@ -120,6 +120,10 @@ def draw_game(screen, game_state):
     # Load the sprite sheet
     player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
     player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
+    #rock_sprite = pygame.image.load('assets/rock.png').convert_alpha()
+    #trunk_sprite = pygame.image.load('assets/trunk.png').convert_alpha()
+    #mango_bomb_sprite = pygame.image.load('assets/mango-bomb.png').convert_alpha()
+    #venom_bomb_sprite = pygame.image.load('assets/venom-bomb.png').convert_alpha()
 
     if player1_idle_sprite is None:
         print("Image failed to load.")
@@ -172,9 +176,13 @@ def draw_game(screen, game_state):
         pixel_x = x * TILE_SIZE  # Calculate pixel_x here
         pixel_y = y * TILE_SIZE + HUD_HEIGHT  # Calculate pixel_y here
         
+        
         # Check if it's player 1 and draw the sprite
         if player['id'] == 0:
-            screen.blit(player1_idle_sprite, (pixel_x, pixel_y))  # Use the player sprite at the calculated pixel coordinates
+            sprite_width, sprite_height = 61, 80  # Tamanho do sprite (61x80)
+            centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
+            centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
+            screen.blit(player1_idle_sprite, (centralized_x, centralized_y))  # Use the player sprite at the calculated pixel coordinates
         else:
             screen.blit(player2_idle_sprite, (pixel_x, pixel_y))  # Use the player sprite at the calculated pixel coordinates
 # Function to draw the HUD
