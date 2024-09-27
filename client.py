@@ -77,11 +77,11 @@ async def main():
 def draw_game(screen, game_state):
     
     player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
-    player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
+    player2_idle_sprite = pygame.image.load('assets/cobra-idle.png').convert_alpha()
     trunk_sprite = pygame.image.load('assets/trunk.png').convert_alpha()
     rock_sprite = pygame.image.load('assets/rock.png').convert_alpha()
-    #mango_bomb_sprite = pygame.image.load('assets/mango-bomb.png').convert_alpha()
-    #venom_bomb_sprite = pygame.image.load('assets/venom-bomb.png').convert_alpha()
+    mango_bomb_sprite = pygame.image.load('assets/mango-bomb.png').convert_alpha()
+    venom_bomb_sprite = pygame.image.load('assets/venom-bomb.png').convert_alpha()
     # Draw the map
     map_matrix = game_state['map']
     for row in range(len(map_matrix)):
@@ -97,8 +97,9 @@ def draw_game(screen, game_state):
             elif cell_value == -2:
                 color = BREAKING_COLOR  # Breaking
             elif cell_value == 3:
+                #screen.blit(mango_bomb_sprite, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT))
                 color = BOMB_COLOR  # Bomb
-            if cell_value != 2 and cell_value != 1:
+            if cell_value != 2 and cell_value != 1 and cell_value != 3:
                 pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
             #pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
 
@@ -108,7 +109,10 @@ def draw_game(screen, game_state):
         y = bomb['y']
         pixel_x = x * TILE_SIZE
         pixel_y = y * TILE_SIZE + HUD_HEIGHT
-        pygame.draw.rect(screen, BOMB_COLOR, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+        if bomb['player_id'] == 0:
+            screen.blit(mango_bomb_sprite, (pixel_x, pixel_y))
+        elif bomb['player_id'] == 1:
+            screen.blit(venom_bomb_sprite, (pixel_x, pixel_y))
 
     # Draw explosions
     for explosion in game_state['explosions']:
@@ -176,6 +180,7 @@ def draw_game(screen, game_state):
 #
     #        # Resize the sprite while maintaining the aspect ratio
     #        player2_idle_sprite = pygame.transform.scale(player2_idle_sprite, (new_width, new_height))
+    
     for player in game_state['players']:
         x = player['x']
         y = player['y']
@@ -189,10 +194,10 @@ def draw_game(screen, game_state):
             centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
             screen.blit(player1_idle_sprite, (centralized_x, centralized_y))  # Use the player sprite at the calculated pixel coordinates
         else:
-            #sprite_width, sprite_height = 61, 80  # Tamanho do sprite (61x80)
-            #centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
-            #centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
-            screen.blit(player2_idle_sprite, (pixel_x, pixel_y))  # Use the player sprite at the calculated pixel coordinates
+            sprite_width, sprite_height = 75, 80  # Tamanho do sprite (61x80)
+            centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
+            centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
+            screen.blit(player2_idle_sprite, (centralized_x, centralized_y))  # Use the player sprite at the calculated pixel coordinates
 # Function to draw the HUD
 def draw_hud(screen, timer, lives):
     # Create a black background for the HUD
