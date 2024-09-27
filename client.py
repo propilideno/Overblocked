@@ -177,7 +177,6 @@ def draw_game(screen, game_state):
     #        else:  # Image is taller than wide
     #            new_height = TILE_SIZE
     #            new_width = int(TILE_SIZE * aspect_ratio)
-#
     #        # Resize the sprite while maintaining the aspect ratio
     #        player2_idle_sprite = pygame.transform.scale(player2_idle_sprite, (new_width, new_height))
     
@@ -212,6 +211,15 @@ def draw_hud(screen, timer, lives):
     # Timer in the middle
     text_timer = font.render(f"Timer: {int(timer)}", True, (255, 255, 255))
     screen.blit(text_timer, (SCREEN_WIDTH // 2 - 50, 10))
+
+def load_player1_animation_frames():
+    animations = {
+        'down': [pygame.image.load(f'assets/caco-walking-down-frame-{i}.png').convert_alpha() for i in range(1, 9)],
+        'up': [pygame.image.load(f'assets/caco-walking-up-frame-{i}.png').convert_alpha() for i in range(1, 9)],
+        'left': [pygame.image.load(f'assets/caco-walking-left-frame-{i}.png').convert_alpha() for i in range(1, 9)],
+        'right': [pygame.image.load(f'assets/caco-walking-right-frame-{i}.png').convert_alpha() for i in range(1, 9)],
+    }
+    return animations
 
 if __name__ == '__main__':
     import websockets
