@@ -6,6 +6,7 @@ import json
 
 from settings import *
 
+
 async def main():
     # Initialize Pygame
     pygame.init()
@@ -31,6 +32,35 @@ async def main():
 
     # Main loop
     running = True
+
+    # Loading sprites
+    global player1_animations, player2_animations, player1_idle_sprite, player2_idle_sprite, trunk_sprite, rock_sprite, mango_bomb_sprite, venom_bomb_sprite
+
+    player1_animations = load_player1_animation_frames()
+    player2_animations = load_player2_animation_frames()
+    player1_idle_sprite = pygame.image.load(
+        'assets/caco-idle.png').convert_alpha()
+    player2_idle_sprite = pygame.image.load(
+        'assets/cobra-idle.png').convert_alpha()
+    trunk_sprite = pygame.image.load('assets/trunk.png').convert_alpha()
+    rock_sprite = pygame.image.load('assets/rock.png').convert_alpha()
+    mango_bomb_sprite = pygame.image.load(
+        'assets/mango-bomb.png').convert_alpha()
+    venom_bomb_sprite = pygame.image.load(
+        'assets/venom-bomb.png').convert_alpha()
+
+    # Animation state
+    player1_animation_state = {
+        'direction': 'down',
+        'frame': 0,
+        'last_update': time.time()
+    }
+    player2_animation_state = {
+        'direction': 'down',
+        'frame': 0,
+        'last_update': time.time()
+    }
+
     while running:
         dt = clock.tick(60)  # Delta time in milliseconds
 
@@ -64,7 +94,12 @@ async def main():
         # Clear the screen and redraw the grid and HUD
         screen.fill(BACKGROUND_COLOR)
         if game_state:
-            draw_game(screen, game_state)
+            update_animation_state(
+                player1_animation_state, controller_input, player_id=0)
+            update_animation_state(
+                player2_animation_state, controller_input, player_id=1)
+            draw_game(screen, game_state, player1_animation_state,
+                      player2_animation_state)
             print(game_state)
             draw_hud(screen, game_state['timestamp'], game_state['lives'])
 
@@ -74,14 +109,39 @@ async def main():
     # Quit Pygame
     pygame.quit()
 
-def draw_game(screen, game_state):
-    
-    player1_idle_sprite = pygame.image.load('assets/caco-idle.png').convert_alpha()
-    player2_idle_sprite = pygame.image.load('assets/cobra-idle.png').convert_alpha()
-    trunk_sprite = pygame.image.load('assets/trunk.png').convert_alpha()
-    rock_sprite = pygame.image.load('assets/rock.png').convert_alpha()
-    mango_bomb_sprite = pygame.image.load('assets/mango-bomb.png').convert_alpha()
-    venom_bomb_sprite = pygame.image.load('assets/venom-bomb.png').convert_alpha()
+
+def update_animation_state(animation_state, controller_input, player_id):
+    direction = animation_state['direction']
+    is_moving = False
+
+    if controller_input['up']:
+        direction = 'up'
+        is_moving = True
+    elif controller_input['down']:
+        direction = 'down'
+        is_moving = True
+    elif controller_input['left']:
+        direction = 'left'
+        is_moving = True
+    elif controller_input['right']:
+        direction = 'right'
+        is_moving = True
+
+    current_time = time.time()
+    if is_moving:
+        # Update frame every 0.1 seconds
+        if current_time - animation_state['last_update'] > 0.1:
+            animation_state['frame'] = (animation_state['frame'] + 1) % len(
+                player1_animations[direction] if player_id == 0 else player2_animations[direction])
+            animation_state['last_update'] = current_time
+    else:
+        # Lock to the first frame of the last direction
+        animation_state['frame'] = 0
+
+    animation_state['direction'] = direction
+
+
+def draw_game(screen, game_state, player1_animation_state, player2_animation_state):
     # Draw the map
     map_matrix = game_state['map']
     for row in range(len(map_matrix)):
@@ -89,19 +149,22 @@ def draw_game(screen, game_state):
             cell_value = map_matrix[row][col]
             color = BACKGROUND_COLOR
             if cell_value == 1:
-                screen.blit(rock_sprite, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT))
+                screen.blit(rock_sprite, (col * TILE_SIZE,
+                            row * TILE_SIZE + HUD_HEIGHT))
                 color = OBSTACLE_COLOR  # Unbreakable
             elif cell_value == 2:
-                screen.blit(trunk_sprite, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT))
+                screen.blit(trunk_sprite, (col * TILE_SIZE,
+                            row * TILE_SIZE + HUD_HEIGHT))
                 color = BREAKABLE_COLOR  # Breakable
             elif cell_value == -2:
                 color = BREAKING_COLOR  # Breaking
             elif cell_value == 3:
-                #screen.blit(mango_bomb_sprite, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT))
+                # screen.blit(mango_bomb_sprite, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT))
                 color = BOMB_COLOR  # Bomb
             if cell_value != 2 and cell_value != 1 and cell_value != 3:
-                pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
-            #pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
+                pygame.draw.rect(screen, color, (col * TILE_SIZE,
+                                 row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
+            # pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
 
     # Draw bombs
     for bomb in game_state['bombs']:
@@ -127,77 +190,34 @@ def draw_game(screen, game_state):
             x, y = sector
             pixel_x = x * TILE_SIZE
             pixel_y = y * TILE_SIZE + HUD_HEIGHT
-            pygame.draw.rect(screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
+            pygame.draw.rect(
+                screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
 
     # Draw players
-
-    # Load the sprite sheet
-    
-    
-    #Não precisa mais fazer o resize, os sprites já estão no tamanho certo
-    #if player1_idle_sprite is None:
-    #    print("Image failed to load.")
-    #else:
-    #    print("Image loaded successfully.")
-    #    print(player1_idle_sprite.get_size())
-    #    # Get original sprite dimensions
-    #    original_width, original_height = player1_idle_sprite.get_size()
-#
-    #    # Calculate aspect ratio and new dimensions keeping within TILE_SIZE
-    #    aspect_ratio = original_width / original_height
-#
-    #    # Calculate the new width and height while keeping the aspect ratio
-    #    if aspect_ratio > 1:  # Image is wider than tall
-    #        new_width = TILE_SIZE
-    #        new_height = int(TILE_SIZE / aspect_ratio)
-    #    else:  # Image is taller than wide
-    #        new_height = TILE_SIZE
-    #        new_width = int(TILE_SIZE * aspect_ratio)
-#
-    #    # Resize the sprite while maintaining the aspect ratio
-    #    player1_idle_sprite = pygame.transform.scale(player1_idle_sprite, (new_width, new_height))
-#
-    #    player2_idle_sprite = pygame.image.load('assets/cobra-idle.png').convert_alpha()
-#
-    #    if player2_idle_sprite is None:
-    #        print("Image failed to load.")
-    #    else:
-    #        print("Image loaded successfully.")
-    #        print(player2_idle_sprite.get_size())
-    #        # Get original sprite dimensions
-    #        original_width, original_height = player2_idle_sprite.get_size()
-#
-    #        # Calculate aspect ratio and new dimensions keeping within TILE_SIZE
-    #        aspect_ratio = original_width / original_height
-#
-    #        # Calculate the new width and height while keeping the aspect ratio
-    #        if aspect_ratio > 1:  # Image is wider than tall
-    #            new_width = TILE_SIZE
-    #            new_height = int(TILE_SIZE / aspect_ratio)
-    #        else:  # Image is taller than wide
-    #            new_height = TILE_SIZE
-    #            new_width = int(TILE_SIZE * aspect_ratio)
-    #        # Resize the sprite while maintaining the aspect ratio
-    #        player2_idle_sprite = pygame.transform.scale(player2_idle_sprite, (new_width, new_height))
-    
     for player in game_state['players']:
         x = player['x']
         y = player['y']
         pixel_x = x * TILE_SIZE  # Calculate pixel_x here
         pixel_y = y * TILE_SIZE + HUD_HEIGHT  # Calculate pixel_y here
-        
-        # Check if it's player 1 and draw the sprite
+
         if player['id'] == 0:
-            sprite_width, sprite_height = 61, 80  # Tamanho do sprite (61x80)
-            centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
-            centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
-            screen.blit(player1_idle_sprite, (centralized_x, centralized_y))  # Use the player sprite at the calculated pixel coordinates
+            direction = player1_animation_state['direction']
+            frame = player1_animation_state['frame']
+            sprite = player1_animations[direction][frame]
         else:
-            sprite_width, sprite_height = 75, 80  # Tamanho do sprite (61x80)
-            centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
-            centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
-            screen.blit(player2_idle_sprite, (centralized_x, centralized_y))  # Use the player sprite at the calculated pixel coordinates
+            direction = player2_animation_state['direction']
+            frame = player2_animation_state['frame']
+            sprite = player2_animations[direction][frame]
+
+        sprite_width, sprite_height = sprite.get_size()
+        centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
+        centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
+        # Use the player sprite at the calculated pixel coordinates
+        screen.blit(sprite, (centralized_x, centralized_y))
+
 # Function to draw the HUD
+
+
 def draw_hud(screen, timer, lives):
     # Create a black background for the HUD
     pygame.draw.rect(screen, HUD_COLOR, (0, 0, SCREEN_WIDTH, HUD_HEIGHT))
@@ -212,14 +232,26 @@ def draw_hud(screen, timer, lives):
     text_timer = font.render(f"Timer: {int(timer)}", True, (255, 255, 255))
     screen.blit(text_timer, (SCREEN_WIDTH // 2 - 50, 10))
 
+
 def load_player1_animation_frames():
     animations = {
-        'down': [pygame.image.load(f'assets/caco-walking-down-frame-{i}.png').convert_alpha() for i in range(1, 9)],
-        'up': [pygame.image.load(f'assets/caco-walking-up-frame-{i}.png').convert_alpha() for i in range(1, 9)],
-        'left': [pygame.image.load(f'assets/caco-walking-left-frame-{i}.png').convert_alpha() for i in range(1, 9)],
-        'right': [pygame.image.load(f'assets/caco-walking-right-frame-{i}.png').convert_alpha() for i in range(1, 9)],
+        'down': [pygame.transform.scale(pygame.image.load(f'assets/caco-walking-down-animation/caco-walking-down-frame-{i}.png').convert_alpha(), (65, 80)) for i in range(1, 9)],
+        'up': [pygame.transform.scale(pygame.image.load(f'assets/caco-walking-up-animation/caco-walking-up-frame-{i}.png').convert_alpha(), (65, 80)) for i in range(1, 9)],
+        'left': [pygame.transform.scale(pygame.image.load(f'assets/caco-walking-left-animation/caco-walking-left-frame-{i}.png').convert_alpha(), (65, 80)) for i in range(1, 9)],
+        'right': [pygame.transform.scale(pygame.image.load(f'assets/caco-walking-right-animation/caco-walking-right-frame-{i}.png').convert_alpha(), (65, 80)) for i in range(1, 9)],
     }
     return animations
+
+
+def load_player2_animation_frames():
+    animations = {
+        'down': [pygame.transform.scale(pygame.image.load(f'assets/cobra-walking-right-animation/cobra-right-{i}.png').convert_alpha(), (75, 80)) for i in range(1, 9)],
+        'up': [pygame.transform.scale(pygame.image.load(f'assets/cobra-walking-left-animation/cobra-left-{i}.png').convert_alpha(), (75, 80)) for i in range(1, 9)],
+        'left': [pygame.transform.scale(pygame.image.load(f'assets/cobra-walking-left-animation/cobra-left-{i}.png').convert_alpha(), (75, 80)) for i in range(1, 9)],
+        'right': [pygame.transform.scale(pygame.image.load(f'assets/cobra-walking-right-animation/cobra-right-{i}.png').convert_alpha(), (75, 80)) for i in range(1, 9)],
+    }
+    return animations
+
 
 if __name__ == '__main__':
     import websockets
