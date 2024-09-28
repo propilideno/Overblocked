@@ -29,7 +29,7 @@ async def main():
     clock = pygame.time.Clock()
 
     # Variables to store game state
-    game_state = [None,None]
+    game_state = [None, None]  # [Current State, Previous State]
 
     # Main loop
     running = True
@@ -89,9 +89,9 @@ async def main():
         # Receive game state from server
         try:
             message = await websocket.recv()
-            game_state[0] = json.loads(message)
             if game_state[0]:
-                game_state[1] = copy.deepcopy(game_state[0]) # Store the last game state
+                game_state[1] = copy.deepcopy(game_state[0])
+            game_state[0] = json.loads(message)
 
         except websockets.exceptions.ConnectionClosed:
             print("Server connection closed")
@@ -100,13 +100,20 @@ async def main():
 
         # Clear the screen and redraw the grid and HUD
         screen.fill(BACKGROUND_COLOR)
-        
+
         if game_state[0]:
-            update_animation_state(game_state[0]['players'], game_state[1]['players'],animation_state)
+            if game_state[1]:
+                update_animation_state(game_state[0]['players'], game_state[1]['players'], animation_state)
+                print('==   Game State   ==')
+                print(game_state[0])
+                print('== Animation State ==')
+                print(animation_state)
+            else:
+                # No previous state, set is_moving to False
+                for id in animation_state:
+                    animation_state[id]['is_moving'] = False
+
             draw_game(screen, game_state[0], animation_state)
-            print(game_state[0])
-            print('-'*30)
-            print(animation_state)
             draw_hud(screen, game_state[0]['timestamp'], game_state[0]['lives'])
 
         # Update display
@@ -127,10 +134,10 @@ def update_animation_state(players_current_state: dict, players_last_state: dict
         for id in players_current_state:
             dx = players_current_state[id][0] - players_last_state[id][0]
             dy = players_current_state[id][1] - players_last_state[id][1]
-            animation_state[id]['is_moving'] = True
-            if (dx > 0 and dy > 0) or (dy > 0 and dx == 0):
+            animation_state[id]['is_moving'] = dx != 0 or dy != 0
+            if (dx < 0 and dy < 0) or (dy < 0 and dx == 0):
                 animation_state[id]['direction'] = 'up'
-            elif (dx < 0 and dy < 0) or (dy < 0 and dx == 0):
+            elif (dx > 0 and dy > 0) or (dy > 0 and dx == 0):
                 animation_state[id]['direction'] = 'down'
             elif (dx < 0):
                 animation_state[id]['direction'] = 'left'
@@ -138,19 +145,24 @@ def update_animation_state(players_current_state: dict, players_last_state: dict
                 animation_state[id]['direction'] = 'right'
             else:
                 animation_state[id]['is_moving'] = False
-    else:
-        for id in animation_state:
-            animation_state[id]['is_moving'] = False
 
     current_time = time.time()
     for id in animation_state:
         if animation_state[id]['is_moving']:
             if current_time - animation_state[id]['last_update'] > 0.1:
-                animation_state[id]['frame'] = (animation_state[id]['frame'] + 1) % len(
-                    player1_animations[animation_state[id]['direction']] if id == 0 else player2_animations[animation_state[id]['direction']])
+                if id == '0':
+                    frames = player1_animations[animation_state[id]['direction']]
+                elif id == '1':
+                    frames = player2_animations[animation_state[id]['direction']]
+                else:
+                    continue
+
+                animation_state[id]['frame'] = (
+                    animation_state[id]['frame'] + 1) % len(frames)
                 animation_state[id]['last_update'] = current_time
         else:
             animation_state[id]['frame'] = 0
+
 
 def draw_game(screen, game_state, animation_state):
     # Draw the map
@@ -211,12 +223,12 @@ def draw_game(screen, game_state, animation_state):
 
         direction = animation_state[id]['direction']
         frame = animation_state[id]['frame']
-        print(direction, frame)
-        sprite = None # TODO - Change animations to be a dict with id as key
         if id == '0':
             sprite = player1_animations[direction][frame]
         elif id == '1':
             sprite = player2_animations[direction][frame]
+        else:
+            continue
 
         sprite_width, sprite_height = sprite.get_size()
         centralized_x = pixel_x + (TILE_SIZE - sprite_width) // 2
