@@ -15,10 +15,7 @@ timestamp = 0
 # Serialize the game state
 def serialize_game_state():
     state = {
-        'players': [
-            {'id': p.player_id, 'x': p.x, 'y': p.y}
-            for p in players
-        ],
+        'players': {p.player_id: [p.x,p.y] for p in players},
         'bombs': [
             {'x': b.x, 'y': b.y, 'player_id': b.player_id}
             for b in bombs

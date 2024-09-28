@@ -3,6 +3,7 @@ import time
 import sys
 import asyncio
 import json
+import copy
 
 from settings import *
 
@@ -28,7 +29,7 @@ async def main():
     clock = pygame.time.Clock()
 
     # Variables to store game state
-    game_state = None
+    game_state = [None,None]
 
     # Main loop
     running = True
@@ -49,16 +50,19 @@ async def main():
     venom_bomb_sprite = pygame.image.load(
         'assets/venom-bomb.png').convert_alpha()
 
-    # Animation state
-    player1_animation_state = {
-        'direction': 'down',
-        'frame': 0,
-        'last_update': time.time()
-    }
-    player2_animation_state = {
-        'direction': 'down',
-        'frame': 0,
-        'last_update': time.time()
+    animation_state = {
+        '0': {
+            'direction': 'down',
+            'frame': 0,
+            'last_update': time.time(),
+            'is_moving': False
+        },
+        '1': {
+            'direction': 'down',
+            'frame': 0,
+            'last_update': time.time(),
+            'is_moving': False
+        }
     }
 
     while running:
@@ -85,7 +89,10 @@ async def main():
         # Receive game state from server
         try:
             message = await websocket.recv()
-            game_state = json.loads(message)
+            game_state[0] = json.loads(message)
+            if game_state[0]:
+                game_state[1] = copy.deepcopy(game_state[0]) # Store the last game state
+
         except websockets.exceptions.ConnectionClosed:
             print("Server connection closed")
             running = False
@@ -93,15 +100,14 @@ async def main():
 
         # Clear the screen and redraw the grid and HUD
         screen.fill(BACKGROUND_COLOR)
-        if game_state:
-            update_animation_state(
-                player1_animation_state, controller_input, player_id=0)
-            update_animation_state(
-                player2_animation_state, controller_input, player_id=1)
-            draw_game(screen, game_state, player1_animation_state,
-                      player2_animation_state)
-            print(game_state)
-            draw_hud(screen, game_state['timestamp'], game_state['lives'])
+        
+        if game_state[0]:
+            update_animation_state(game_state[0]['players'], game_state[1]['players'],animation_state)
+            draw_game(screen, game_state[0], animation_state)
+            print(game_state[0])
+            print('-'*30)
+            print(animation_state)
+            draw_hud(screen, game_state[0]['timestamp'], game_state[0]['lives'])
 
         # Update display
         pygame.display.flip()
@@ -110,38 +116,43 @@ async def main():
     pygame.quit()
 
 
-def update_animation_state(animation_state, controller_input, player_id):
-    direction = animation_state['direction']
-    is_moving = False
-
-    if controller_input['up']:
-        direction = 'up'
-        is_moving = True
-    elif controller_input['down']:
-        direction = 'down'
-        is_moving = True
-    elif controller_input['left']:
-        direction = 'left'
-        is_moving = True
-    elif controller_input['right']:
-        direction = 'right'
-        is_moving = True
+def update_animation_state(players_current_state: dict, players_last_state: dict, animation_state: dict) -> None:
+    """
+    in: (
+            {"0": [3.0, 2.0], "1": [12.0, 9.0]},
+            {"0": [2.9, 2.0], "1": [12.1, 9.0]}
+        )
+    """
+    if players_current_state.keys() == players_last_state.keys():
+        for id in players_current_state:
+            dx = players_current_state[id][0] - players_last_state[id][0]
+            dy = players_current_state[id][1] - players_last_state[id][1]
+            animation_state[id]['is_moving'] = True
+            if (dx > 0 and dy > 0) or (dy > 0 and dx == 0):
+                animation_state[id]['direction'] = 'up'
+            elif (dx < 0 and dy < 0) or (dy < 0 and dx == 0):
+                animation_state[id]['direction'] = 'down'
+            elif (dx < 0):
+                animation_state[id]['direction'] = 'left'
+            elif (dx > 0):
+                animation_state[id]['direction'] = 'right'
+            else:
+                animation_state[id]['is_moving'] = False
+    else:
+        for id in animation_state:
+            animation_state[id]['is_moving'] = False
 
     current_time = time.time()
-    if is_moving:
-        # Update frame every 0.1 seconds
-        if current_time - animation_state['last_update'] > 0.1:
-            animation_state['frame'] = (animation_state['frame'] + 1) % len(
-                player1_animations[direction] if player_id == 0 else player2_animations[direction])
-            animation_state['last_update'] = current_time
-    else:
-        # Lock to the first frame of the last direction
-        animation_state['frame'] = 0
+    for id in animation_state:
+        if animation_state[id]['is_moving']:
+            if current_time - animation_state[id]['last_update'] > 0.1:
+                animation_state[id]['frame'] = (animation_state[id]['frame'] + 1) % len(
+                    player1_animations[animation_state[id]['direction']] if id == 0 else player2_animations[animation_state[id]['direction']])
+                animation_state[id]['last_update'] = current_time
+        else:
+            animation_state[id]['frame'] = 0
 
-    animation_state['direction'] = direction
-
-
-def draw_game(screen, game_state, player1_animation_state, player2_animation_state):
+def draw_game(screen, game_state, animation_state):
     # Draw the map
     map_matrix = game_state['map']
     for row in range(len(map_matrix)):
@@ -194,19 +205,17 @@ def draw_game(screen, game_state, player1_animation_state, player2_animation_sta
                 screen, color, (pixel_x, pixel_y, TILE_SIZE, TILE_SIZE))
 
     # Draw players
-    for player in game_state['players']:
-        x = player['x']
-        y = player['y']
+    for id, (x,y) in game_state['players'].items():
         pixel_x = x * TILE_SIZE  # Calculate pixel_x here
         pixel_y = y * TILE_SIZE + HUD_HEIGHT  # Calculate pixel_y here
 
-        if player['id'] == 0:
-            direction = player1_animation_state['direction']
-            frame = player1_animation_state['frame']
+        direction = animation_state[id]['direction']
+        frame = animation_state[id]['frame']
+        print(direction, frame)
+        sprite = None # TODO - Change animations to be a dict with id as key
+        if id == '0':
             sprite = player1_animations[direction][frame]
-        else:
-            direction = player2_animation_state['direction']
-            frame = player2_animation_state['frame']
+        elif id == '1':
             sprite = player2_animations[direction][frame]
 
         sprite_width, sprite_height = sprite.get_size()
@@ -214,8 +223,6 @@ def draw_game(screen, game_state, player1_animation_state, player2_animation_sta
         centralized_y = pixel_y  # A altura já é a mesma, então não precisa ajustar
         # Use the player sprite at the calculated pixel coordinates
         screen.blit(sprite, (centralized_x, centralized_y))
-
-# Function to draw the HUD
 
 
 def draw_hud(screen, timer, lives):
