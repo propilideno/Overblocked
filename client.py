@@ -16,6 +16,11 @@ async def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Overblocked")
 
+    # Load background image
+    global background_image
+    background_image = pygame.image.load('./assets/maps/mapa_neve_com_pedra.png').convert()
+    background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
+
     # Connect to server
     uri = f"ws://{SERVER_URL}:{SERVER_PORT}"
     try:
@@ -99,7 +104,7 @@ async def main():
             break
 
         # Clear the screen and redraw the grid and HUD
-        screen.fill(BACKGROUND_COLOR)
+        screen.blit(background_image, (0, HUD_HEIGHT))
 
         if game_state[0]:
             if game_state[1]:
@@ -172,8 +177,8 @@ def draw_game(screen, game_state, animation_state):
             cell_value = map_matrix[row][col]
             color = BACKGROUND_COLOR
             if cell_value == 1:
-                screen.blit(rock_sprite, (col * TILE_SIZE,
-                            row * TILE_SIZE + HUD_HEIGHT))
+                # screen.blit(rock_sprite, (col * TILE_SIZE,
+                #             row * TILE_SIZE + HUD_HEIGHT))
                 color = OBSTACLE_COLOR  # Unbreakable
             elif cell_value == 2:
                 screen.blit(trunk_sprite, (col * TILE_SIZE,
@@ -181,12 +186,12 @@ def draw_game(screen, game_state, animation_state):
                 color = BREAKABLE_COLOR  # Breakable
             elif cell_value == -2:
                 color = BREAKING_COLOR  # Breaking
+                pygame.draw.rect(screen, color, (col * TILE_SIZE,
+                                 row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
             elif cell_value == 3:
                 # screen.blit(mango_bomb_sprite, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT))
                 color = BOMB_COLOR  # Bomb
-            if cell_value != 2 and cell_value != 1 and cell_value != 3:
-                pygame.draw.rect(screen, color, (col * TILE_SIZE,
-                                 row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE))
+
             # pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
 
     # Draw bombs
