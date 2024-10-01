@@ -45,7 +45,7 @@ async def main():
     running = True
 
     # Loading sprites
-    global player1_animations, player2_animations, player1_idle_sprite, player2_idle_sprite, trunk_sprite, rock_sprite, mango_bomb_sprite, venom_bomb_sprite
+    global player1_animations, player2_animations, player1_idle_sprite, player2_idle_sprite, trunk_sprite, rock_sprite, mango_bomb_sprite, venom_bomb_sprite, mango_bomb_animation, venom_bomb_animation
 
     player1_animations = load_player1_animation_frames()
     player2_animations = load_player2_animation_frames()
@@ -55,12 +55,17 @@ async def main():
         'assets/cobra-idle.png').convert_alpha()
     trunk_sprite = pygame.image.load('assets/trunk.png').convert_alpha()
     rock_sprite = pygame.image.load('assets/rock.png').convert_alpha()
-    mango_bomb_sprite = pygame.image.load(
-        'assets/mango-bomb.png').convert_alpha()
-    mango_bomb_sprite = pygame.transform.scale(mango_bomb_sprite, (65, 65))
-    venom_bomb_sprite = pygame.image.load(
-        'assets/venom-bomb.png').convert_alpha()
-    venom_bomb_sprite = pygame.transform.scale(venom_bomb_sprite, (65, 65))
+    #mango_bomb_sprite = pygame.image.load(
+    #    'assets/mango-bomb.png').convert_alpha()
+    #mango_bomb_sprite = pygame.transform.scale(mango_bomb_sprite, (65, 65))
+    #venom_bomb_sprite = pygame.image.load(
+    #    'assets/venom-bomb.png').convert_alpha()
+    #venom_bomb_sprite = pygame.transform.scale(venom_bomb_sprite, (65, 65))
+
+    global bomb_start_times
+    bomb_start_times = {}
+    mango_bomb_animation = [pygame.transform.scale(pygame.image.load(f'./assets/bomb-mango-animation/{i}.png').convert_alpha(), (60, 60)) for i in range(1, 6)]
+    venom_bomb_animation = [pygame.transform.scale(pygame.image.load(f'./assets/bomb-venom-animation/{i}.png').convert_alpha(), (60, 60)) for i in range(1, 6)]
 
     animation_state = {
         '0': {
@@ -210,16 +215,40 @@ def draw_game(screen, game_state, animation_state):
 
             # pygame.draw.rect(screen, GRID_COLOR, (col * TILE_SIZE, row * TILE_SIZE + HUD_HEIGHT, TILE_SIZE, TILE_SIZE), 1)
 
-    # Draw bombs
+    # Draw bombs with animation
+    EXPLOSION_DURATION=3000
     for bomb in game_state['bombs']:
         x = bomb['x']
         y = bomb['y']
         pixel_x = x * TILE_SIZE
         pixel_y = y * TILE_SIZE + HUD_HEIGHT
+
+        # Get or set the start time of the bomb
+        if (bomb['x'], bomb['y']) not in bomb_start_times:
+            bomb_start_times[(bomb['x'], bomb['y'])] = pygame.time.get_ticks()
+
+        # Calculate time elapsed since bomb was placed
+        elapsed_time = pygame.time.get_ticks() - bomb_start_times[(bomb['x'], bomb['y'])]
+
+        # Determine the current frame of the animation based on elapsed time
+        frame_index = (elapsed_time // (EXPLOSION_DURATION // len(mango_bomb_animation))) % len(mango_bomb_animation)
+
+        # Choose the correct animation frames based on player ID
         if bomb['player_id'] == 0:
-            screen.blit(mango_bomb_sprite, (pixel_x, pixel_y))
+            current_frame = mango_bomb_animation[frame_index]  # Mango bomb animation
         elif bomb['player_id'] == 1:
-            screen.blit(venom_bomb_sprite, (pixel_x, pixel_y))
+            current_frame = venom_bomb_animation[frame_index]  # Venom bomb animation
+        else:
+            continue
+
+        # Draw the current frame of the bomb
+        screen.blit(current_frame, (pixel_x, pixel_y))
+
+        # Check if the bomb should explode (if elapsed time is greater than EXPLOSION_DURATION)
+        if elapsed_time > EXPLOSION_DURATION:
+            # Remove the bomb from the dictionary once it explodes to clean up
+            del bomb_start_times[(bomb['x'], bomb['y'])]
+            # Trigger explosion here (e.g., update game state or call explosion logic)
 
     # Draw explosions
     for explosion in game_state['explosions']:
