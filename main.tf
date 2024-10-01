@@ -32,7 +32,7 @@ terraform {
 }
 
 locals {
-  project = "segcomp"
+  project = "gamedev"
   key_name = "lalmeida-rsa"
   ip_grupo = [
     "${chomp(data.http.ipv4.response_body)}/32", # Lucas
