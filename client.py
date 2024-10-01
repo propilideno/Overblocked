@@ -52,8 +52,10 @@ async def main():
     rock_sprite = pygame.image.load('assets/rock.png').convert_alpha()
     mango_bomb_sprite = pygame.image.load(
         'assets/mango-bomb.png').convert_alpha()
+    mango_bomb_sprite = pygame.transform.scale(mango_bomb_sprite, (65, 65))
     venom_bomb_sprite = pygame.image.load(
         'assets/venom-bomb.png').convert_alpha()
+    venom_bomb_sprite = pygame.transform.scale(venom_bomb_sprite, (65, 65))
 
     animation_state = {
         '0': {
