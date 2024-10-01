@@ -23,7 +23,7 @@ async def main():
     mapa_2 = pygame.image.load('./assets/maps/mapa_verde_com_pedra.png').convert()
     mapa_2 = pygame.transform.scale(mapa_2, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
 
-    mapa_3 = pygame.image.load('./assets/maps/mapa_marrom_com_pedra.png').convert()
+    mapa_3 = pygame.image.load('./assets/maps/mapa_areia_com_pedra.png').convert()
     mapa_3 = pygame.transform.scale(mapa_3, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
 
     # Connect to server
