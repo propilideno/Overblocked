@@ -1,5 +1,5 @@
 [server]
-url = "localhost"
+url = "15.228.90.16"
 port = 8765
 
 [game]

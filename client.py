@@ -130,10 +130,10 @@ async def main():
         if game_state[0]:
             if game_state[1]:
                 update_animation_state(game_state[0]['players'], game_state[1]['players'], animation_state)
-                print('==   Game State   ==')
-                print(game_state[0])
-                print('== Animation State ==')
-                print(animation_state)
+                # print('==   Game State   ==')
+                # print(game_state[0])
+                # print('== Animation State ==')
+                # print(animation_state)
             else:
                 # No previous state, set is_moving to False
                 for id in animation_state:

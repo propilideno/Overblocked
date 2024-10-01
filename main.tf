@@ -35,8 +35,8 @@ locals {
   project = "gamedev"
   key_name = "lalmeida-rsa"
   ip_grupo = [
-    "${chomp(data.http.ipv4.response_body)}/32", # Lucas
-    "0.0.0.0/0"                         # Filipe
+    "${chomp(data.http.ipv4.response_body)}/32", # Your IP
+    "0.0.0.0/0" # Internet
   ]
   user_data = <<-EOF
   #cloud-config
