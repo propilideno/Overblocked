@@ -7,7 +7,6 @@ import copy
 
 from settings import *
 
-
 async def main():
     # Initialize Pygame
     pygame.init()
@@ -16,10 +15,16 @@ async def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Overblocked")
 
-    # Load background image
-    global background_image
-    background_image = pygame.image.load('./assets/maps/mapa_neve_com_pedra.png').convert()
-    background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
+
+    # Background image
+    mapa_1 = pygame.image.load('./assets/maps/mapa_neve_com_pedra.png').convert()
+    mapa_1 = pygame.transform.scale(mapa_1, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
+
+    mapa_2 = pygame.image.load('./assets/maps/mapa_verde_com_pedra.png').convert()
+    mapa_2 = pygame.transform.scale(mapa_2, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
+
+    mapa_3 = pygame.image.load('./assets/maps/mapa_marrom_com_pedra.png').convert()
+    mapa_3 = pygame.transform.scale(mapa_3, (SCREEN_WIDTH, SCREEN_HEIGHT - HUD_HEIGHT))
 
     # Connect to server
     uri = f"ws://{SERVER_URL}:{SERVER_PORT}"
@@ -106,6 +111,15 @@ async def main():
             break
 
         # Clear the screen and redraw the grid and HUD
+        match sum(game_state[0]['lives'])%3:
+            case 0:
+                background_image = mapa_1
+            case 1:
+                background_image = mapa_2
+            case 2:
+                background_image = mapa_3
+            case _:
+                background_image = mapa_1
         screen.blit(background_image, (0, HUD_HEIGHT))
 
         if game_state[0]:
