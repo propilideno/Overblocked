@@ -1,9 +1,8 @@
 # Overblocked
 
 ![](./images/print_1.png)
-![](./images/print_4.png)
 ![](./images/print_5.png)
-
+![](./images/print_4.png)
 
 ## How to run the game
 Terminal 1 - Server Side
