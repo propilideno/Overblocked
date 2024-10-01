@@ -60,9 +60,9 @@ locals {
 #  \____|\___/|____/ |_| \___/|_|  |_|___/____/_/   \_\____/|_____|_____|
 
 locals {
-  region = "us-east-1"
+  region = "sa-east-1"
   prefix = "lab"
-  instance_type = "t3.large"
+  instance_type = "t3.medium"
   create_spot_instance = false
   open_ports = [
     "8765"
